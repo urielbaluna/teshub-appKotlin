@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:paddingHorizontal="32dp"
+    android:background="@color/white"
+    tools:context=".MainActivity">
+
+    <!-- Logo -->
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="260dp"
+        android:layout_height="120dp"
+        android:layout_marginTop="50dp"
+        android:layout_marginBottom="40dp"
+        android:src="@drawable/teshub"
+        android:contentDescription="Teshub logo"
+        android:adjustViewBounds="true" />
+
+    <!-- Correo -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#E0E0E0"
+        android:padding="12dp"
+        android:layout_marginBottom="16dp"
+        android:layout_gravity="center"
+        android:gravity="center_vertical"
+        android:clipToOutline="true"
+        android:layout_marginHorizontal="8dp"
+        android:layout_marginTop="8dp"
+        android:backgroundTint="@null"
+        android:radius="12dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_email" />
+
+        <EditText
+            android:id="@+id/etUsuario"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="CORREO ELECTRONICO"
+            android:textColorHint="#000"
+            android:background="@null"
+            android:paddingStart="10dp"
+            android:inputType="textEmailAddress" />
+    </LinearLayout>
+
+    <!-- Contraseña -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#E0E0E0"
+        android:padding="12dp"
+        android:gravity="center_vertical"
+        android:clipToOutline="true"
+        android:layout_marginBottom="32dp"
+        android:layout_marginHorizontal="8dp"
+        android:radius="12dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_lock" />
+
+        <EditText
+            android:id="@+id/etPassword"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="CONTRASEÑA"
+            android:textColorHint="#000"
+            android:background="@null"
+            android:paddingStart="10dp"
+            android:inputType="textPassword" />
+
+        <ImageView
+            android:id="@+id/ivVerPassword"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_visibility" />
+    </LinearLayout>
+
+    <!-- Botón -->
+    <Button
+        android:id="@+id/btnLogin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ACCEDER"
+        android:textAllCaps="true"
+        android:textStyle="bold"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#2DA036"
+        android:layout_marginBottom="16dp"
+        android:padding="12dp" />
+
+    <!-- Enlaces -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="¿Olvidaste tu contraseña?\nO\nCrear cuenta nueva"
+        android:textAlignment="center"
+        android:textColor="#555"
+        android:textSize="14sp" />
+
+</LinearLayout>
