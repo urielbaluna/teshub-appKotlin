@@ -1,0 +1,141 @@
+package com.example.teshub_v1.fragments
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import com.bumptech.glide.Glide // 💡 Para cargar imágenes desde URL
+import com.example.teshub_v1.BuildConfig
+import com.example.teshub_v1.MainActivity // Para redirigir al login en logout
+import com.example.teshub_v1.R
+import com.example.teshub_v1.network.RetrofitClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.HttpException
+
+class PerfilFragment : Fragment() {
+
+    private lateinit var ivProfileAvatar: ImageView
+    private lateinit var tvUserName: TextView
+    private lateinit var tvUserRole: TextView
+    private lateinit var tvUserEmail: TextView
+    private lateinit var tvUserMatricula: TextView
+    private lateinit var tvTotalPublications: TextView
+    private lateinit var tvFeaturedPublicationTitle: TextView
+    private lateinit var layoutFeaturedPublication: LinearLayout // Para ocultar si no hay destacada
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_perfil, container, false)
+
+        // Inicializar vistas
+        ivProfileAvatar = view.findViewById(R.id.iv_profile_avatar)
+        tvUserName = view.findViewById(R.id.tv_user_name)
+        tvUserRole = view.findViewById(R.id.tv_user_role)
+        tvUserEmail = view.findViewById(R.id.tv_user_email)
+        tvUserMatricula = view.findViewById(R.id.tv_user_matricula)
+        tvTotalPublications = view.findViewById(R.id.tv_total_publications)
+        tvFeaturedPublicationTitle = view.findViewById(R.id.tv_featured_publication_title)
+        layoutFeaturedPublication = view.findViewById(R.id.layout_destacada)
+
+        // Configurar botón de logout
+        val btnLogout = view.findViewById<ImageView>(R.id.btn_logout)
+        btnLogout.setOnClickListener {
+            logout()
+        }
+
+        // Cargar datos del perfil
+        loadUserProfile()
+
+        return view
+    }
+
+    private fun loadUserProfile() {
+        val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        val token = sharedPref?.getString("token", null)
+
+        if (token.isNullOrEmpty()) {
+            Toast.makeText(context, "No hay sesión activa. Por favor, inicia sesión.", Toast.LENGTH_LONG).show()
+            // Redirigir al login si no hay token
+            logout() // O simplemente navegar
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val perfil = RetrofitClient.teshubApi.getPerfil("Bearer $token")
+
+                withContext(Dispatchers.Main) {
+                    tvUserName.text = "${perfil.nombre} ${perfil.apellido}"
+                    tvUserRole.text = "Rol: ${perfil.rol}"
+                    tvUserEmail.text = perfil.correo
+                    tvUserMatricula.text = "Matrícula: ${perfil.matricula}"
+                    tvTotalPublications.text = perfil.totalPublicaciones.toString()
+
+                    // Manejar la imagen de perfil
+                    perfil.imagen?.let { imageUrl ->
+                        val fullImageUrl = BuildConfig.API_BASE_URL + imageUrl // Construir la URL completa
+                        Glide.with(this@PerfilFragment)
+                            .load(fullImageUrl)
+                            .placeholder(R.drawable.ic_profile) // Placeholder si la carga falla
+                            .error(R.drawable.ic_profile) // Imagen de error
+                            .into(ivProfileAvatar)
+                    } ?: run {
+                        ivProfileAvatar.setImageResource(R.drawable.ic_profile)
+                    }
+
+                    // Manejar la publicación destacada
+                    if (!perfil.publicacionDestacada.isNullOrEmpty()) {
+                        tvFeaturedPublicationTitle.text = perfil.publicacionDestacada
+                        layoutFeaturedPublication.visibility = View.VISIBLE
+                    } else {
+                        layoutFeaturedPublication.visibility = View.GONE
+                    }
+                }
+
+            } catch (e: HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                val errorMessage = try {
+                    org.json.JSONObject(errorBody).optString("mensaje", "Error al cargar perfil.")
+                } catch (jsonE: Exception) {
+                    "Error de servidor: ${e.code()}"
+                }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                    Log.e("PerfilFragment", "HTTP ${e.code()}: $errorMessage")
+                    // Si es 401 Unauthorized, el token ha expirado o es inválido.
+                    if (e.code() == 401) logout()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
+                    Log.e("PerfilFragment", e.stackTraceToString())
+                }
+            }
+        }
+    }
+
+    private fun logout() {
+        val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        with(sharedPref?.edit()) {
+            this?.remove("token") // Elimina el token
+            this?.apply()
+        }
+        val intent = Intent(activity, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        activity?.finish()
+    }
+}

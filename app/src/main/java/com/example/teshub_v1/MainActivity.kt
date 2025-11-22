@@ -1,3 +1,4 @@
+// src/main/java/com/example/teshub_v1/MainActivity.kt
 package com.example.teshub_v1
 
 import android.content.Intent
@@ -7,16 +8,18 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.teshub_v1.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
+
+// 💡 Importaciones para el manejo de la nueva capa de red
+import com.example.teshub_v1.network.RetrofitClient
+import retrofit2.HttpException
+import org.json.JSONObject // Mantenido para parsear mensajes de error del servidor
+
+// 💡 Debes cambiar el destino de navegación
+// import com.example.teshub_v1.HomeActivity // OLD
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,9 +27,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val etUsuario = findViewById<EditText>(R.id.etUsuario)
-        val etPassword = findViewById<EditText>(R.id.etPassword)
-        val btnLogin = findViewById<Button>(R.id.btnLogin)
+        val etUsuario = findViewById<EditText>(R.id.etUsuario) // Asume R.id.etUsuario existe
+        val etPassword = findViewById<EditText>(R.id.etPassword) // Asume R.id.etPassword existe
+        val btnLogin = findViewById<Button>(R.id.btnLogin) // Asume R.id.btnLogin existe
 
         btnLogin.setOnClickListener {
             val usuario = etUsuario.text.toString().trim()
@@ -45,89 +48,61 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun loginUsuario(usuario: String, password: String) {
         try {
-            val url = URL("${BuildConfig.API_BASE_URL}/api/usuarios/login")
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "POST"
-            connection.connectTimeout = 15000
-            connection.readTimeout = 15000
-            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            connection.setRequestProperty("Accept", "application/json")
-            connection.doOutput = true
-            connection.doInput = true
+            // 1. Preparar la petición JSON (correo y contrasena)
+            val loginRequest = mapOf("correo" to usuario, "contrasena" to password)
 
-            val jsonInput = JSONObject().apply {
-                put("correo", usuario)
-                put("contrasena", password)
-            }
+            // 2. Llamar al servicio Retrofit. Retrofit y Moshi manejan la conexión HTTP
+            // y el mapeo de JSON a la Data Class LoginResponse.
+            val response = RetrofitClient.teshubApi.login(loginRequest)
 
-            OutputStreamWriter(connection.outputStream).use { writer ->
-                writer.write(jsonInput.toString())
-                writer.flush()
-            }
+            // 3. Éxito: Navegar y guardar el token (en el hilo principal)
+            withContext(Dispatchers.Main) {
+                val token = response.token
+                val nombre = response.nombre
+                val rol = response.rol
 
-            val responseCode = connection.responseCode
-            val responseText = try {
-                val stream = if (responseCode in 200..299) {
-                    connection.inputStream
-                } else {
-                    connection.errorStream
+                // Guardar el token en SharedPreferences
+                val sharedPref = getSharedPreferences("sesion", MODE_PRIVATE)
+                with(sharedPref.edit()) {
+                    putString("token", token)
+                    apply()
                 }
-                stream.bufferedReader().use(BufferedReader::readText)
-            } catch (e: Exception) {
-                ""
+
+                Toast.makeText(
+                    this@MainActivity,
+                    "Bienvenido $nombre ($rol)",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                // 💡 Navegar a la Activity Contenedora con la barra inferior
+                val intent = Intent(this@MainActivity, HomeContainerActivity::class.java)
+
+                // Pasar datos necesarios
+                intent.putExtra("nombre", nombre)
+                intent.putExtra("rol", rol)
+
+                startActivity(intent)
+                finish()
             }
 
-            Log.d("LoginDebug", "Código HTTP: $responseCode")
-            Log.d("LoginDebug", "Respuesta: $responseText")
+        } catch (e: HttpException) {
+            // Manejar errores HTTP (ej. 401 Unauthorized por credenciales incorrectas)
+            val errorBody = e.response()?.errorBody()?.string()
+            val errorMessage = try {
+                // Intenta parsear el campo 'mensaje' del JSON de error de tu API de Node.js
+                JSONObject(errorBody).optString("mensaje", "Credenciales incorrectas")
+            } catch (jsonE: Exception) {
+                "Error de servidor: ${e.code()}"
+            }
 
             withContext(Dispatchers.Main) {
-                if (responseCode in 200..299 && !responseText.startsWith("<!DOCTYPE")) {
-                    try {
-                        val jsonResponse = JSONObject(responseText)
-
-                        val token = jsonResponse.optString("token", "")
-                        val nombre = jsonResponse.optString("nombre", "")
-                        val rol = jsonResponse.optString("rol", "")
-
-                        Toast.makeText(
-                            this@MainActivity,
-                            "Bienvenido $nombre ($rol)",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
-                        val intent = Intent(this@MainActivity, HomeActivity::class.java)
-                        intent.putExtra("usuario", usuario)
-                        intent.putExtra("token", token)
-                        startActivity(intent)
-                        finish()
-                    } catch (e: Exception) {
-                        Toast.makeText(
-                            this@MainActivity,
-                            "Error al interpretar la respuesta del servidor",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                } else {
-                    val mensajeError = when {
-                        responseText.startsWith("<!DOCTYPE") ->
-                            "El servidor devolvió HTML (revisa la ruta o el método POST)."
-                        responseText.isEmpty() ->
-                            "Sin respuesta del servidor."
-                        else -> {
-                            try {
-                                JSONObject(responseText).optString("mensaje", responseText)
-                            } catch (e: Exception) {
-                                responseText
-                            }
-                        }
-                    }
-                    Toast.makeText(this@MainActivity, mensajeError, Toast.LENGTH_LONG).show()
-                }
+                Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_LONG).show()
+                Log.e("LoginError", "HTTP ${e.code()}: $errorMessage")
             }
-
         } catch (e: Exception) {
+            // Manejar errores de red general (Timeout, DNS, conexión perdida)
             withContext(Dispatchers.Main) {
-                Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
                 Log.e("LoginError", e.stackTraceToString())
             }
         }
