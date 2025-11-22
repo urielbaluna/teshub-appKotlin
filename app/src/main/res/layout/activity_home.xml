@@ -14,16 +14,5 @@
         android:textSize="18sp"
         android:layout_margin="16dp"
         android:textColor="#000000" />
-    <Button
-        android:id="@+id/btnEditarPerfil"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Editar Perfil"
-        android:textStyle="bold"
-        android:padding="12dp"
-        android:layout_marginTop="20dp"
-        android:backgroundTint="#4CAF50"
-        android:textColor="#FFF" />
-
 
 </LinearLayout>

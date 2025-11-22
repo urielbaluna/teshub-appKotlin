@@ -13,9 +13,6 @@ import org.json.JSONObject
 import java.io.BufferedReader
 import java.net.HttpURLConnection
 import java.net.URL
-import android.content.Intent
-import android.widget.Button
-import com.example.teshub_v1.Usuarios.ActualizarUsuarioActivity
 
 class HomeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,22 +25,13 @@ class HomeActivity : AppCompatActivity() {
         val sharedPref = getSharedPreferences("sesion", MODE_PRIVATE)
         val token = sharedPref.getString("token", null)
 
-        if (token.isNullOrEmpty()) {
+        if (token == null) {
             Toast.makeText(this, "No hay sesión activa", Toast.LENGTH_SHORT).show()
-            // 🔹 Redirigir al login si no hay sesión
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
             return
         }
 
         CoroutineScope(Dispatchers.IO).launch {
             consultarPerfil(token, tvMensaje)
-        }
-
-        val btnEditar = findViewById<Button>(R.id.btnEditarPerfil)
-        btnEditar.setOnClickListener {
-            val intent = Intent(this, ActualizarUsuarioActivity::class.java)
-            startActivity(intent)
         }
     }
 

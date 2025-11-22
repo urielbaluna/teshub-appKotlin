@@ -89,10 +89,6 @@ class MainActivity : AppCompatActivity() {
                         val nombre = jsonResponse.optString("nombre", "")
                         val rol = jsonResponse.optString("rol", "")
 
-                        // 🔹 Guardar token en SharedPreferences
-                        val sharedPref = getSharedPreferences("sesion", MODE_PRIVATE)
-                        sharedPref.edit().putString("token", token).apply()
-
                         Toast.makeText(
                             this@MainActivity,
                             "Bienvenido $nombre ($rol)",
@@ -100,6 +96,8 @@ class MainActivity : AppCompatActivity() {
                         ).show()
 
                         val intent = Intent(this@MainActivity, HomeActivity::class.java)
+                        intent.putExtra("usuario", usuario)
+                        intent.putExtra("token", token)
                         startActivity(intent)
                         finish()
                     } catch (e: Exception) {
