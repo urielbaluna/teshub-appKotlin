@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.teshub_v1">
+
     <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -12,7 +14,12 @@
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <activity android:name=".HomeActivity" />
+        <activity
+            android:name=".HomeContainerActivity"
+            android:exported="false" />
+
+        <activity android:name=".CrearPublicacionActivity" android:exported="false" />
+
         <activity android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
@@ -25,4 +32,3 @@
             android:exported="false" />
     </application>
 </manifest>
-
