@@ -12,9 +12,9 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import com.bumptech.glide.Glide // 💡 Para cargar imágenes desde URL
+import com.bumptech.glide.Glide
 import com.example.teshub_v1.BuildConfig
-import com.example.teshub_v1.MainActivity // Para redirigir al login en logout
+import com.example.teshub_v1.MainActivity
 import com.example.teshub_v1.R
 import com.example.teshub_v1.network.RetrofitClient
 import kotlinx.coroutines.CoroutineScope
@@ -32,7 +32,7 @@ class PerfilFragment : Fragment() {
     private lateinit var tvUserMatricula: TextView
     private lateinit var tvTotalPublications: TextView
     private lateinit var tvFeaturedPublicationTitle: TextView
-    private lateinit var layoutFeaturedPublication: LinearLayout // Para ocultar si no hay destacada
+    private lateinit var layoutFeaturedPublication: LinearLayout
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -40,7 +40,6 @@ class PerfilFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_perfil, container, false)
 
-        // Inicializar vistas
         ivProfileAvatar = view.findViewById(R.id.iv_profile_avatar)
         tvUserName = view.findViewById(R.id.tv_user_name)
         tvUserRole = view.findViewById(R.id.tv_user_role)
@@ -50,13 +49,11 @@ class PerfilFragment : Fragment() {
         tvFeaturedPublicationTitle = view.findViewById(R.id.tv_featured_publication_title)
         layoutFeaturedPublication = view.findViewById(R.id.layout_destacada)
 
-        // Configurar botón de logout
         val btnLogout = view.findViewById<ImageView>(R.id.btn_logout)
         btnLogout.setOnClickListener {
             logout()
         }
 
-        // Cargar datos del perfil
         loadUserProfile()
 
         return view
@@ -68,8 +65,7 @@ class PerfilFragment : Fragment() {
 
         if (token.isNullOrEmpty()) {
             Toast.makeText(context, "No hay sesión activa. Por favor, inicia sesión.", Toast.LENGTH_LONG).show()
-            // Redirigir al login si no hay token
-            logout() // O simplemente navegar
+            logout()
             return
         }
 
@@ -84,19 +80,17 @@ class PerfilFragment : Fragment() {
                     tvUserMatricula.text = "Matrícula: ${perfil.matricula}"
                     tvTotalPublications.text = perfil.totalPublicaciones.toString()
 
-                    // Manejar la imagen de perfil
                     perfil.imagen?.let { imageUrl ->
-                        val fullImageUrl = BuildConfig.API_BASE_URL + imageUrl // Construir la URL completa
+                        val fullImageUrl = "${BuildConfig.API_BASE_URL}/$imageUrl"
                         Glide.with(this@PerfilFragment)
                             .load(fullImageUrl)
-                            .placeholder(R.drawable.ic_profile) // Placeholder si la carga falla
-                            .error(R.drawable.ic_profile) // Imagen de error
+                            .placeholder(R.drawable.ic_profile)
+                            .error(R.drawable.ic_profile)
                             .into(ivProfileAvatar)
                     } ?: run {
                         ivProfileAvatar.setImageResource(R.drawable.ic_profile)
                     }
 
-                    // Manejar la publicación destacada
                     if (!perfil.publicacionDestacada.isNullOrEmpty()) {
                         tvFeaturedPublicationTitle.text = perfil.publicacionDestacada
                         layoutFeaturedPublication.visibility = View.VISIBLE
@@ -115,7 +109,6 @@ class PerfilFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
                     Log.e("PerfilFragment", "HTTP ${e.code()}: $errorMessage")
-                    // Si es 401 Unauthorized, el token ha expirado o es inválido.
                     if (e.code() == 401) logout()
                 }
             } catch (e: Exception) {
@@ -130,7 +123,7 @@ class PerfilFragment : Fragment() {
     private fun logout() {
         val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
         with(sharedPref?.edit()) {
-            this?.remove("token") // Elimina el token
+            this?.remove("token")
             this?.apply()
         }
         val intent = Intent(activity, MainActivity::class.java)
