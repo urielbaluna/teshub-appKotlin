@@ -5,8 +5,10 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.teshub_v1.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,11 +42,18 @@ class MainActivity : AppCompatActivity() {
                 loginUsuario(usuario, password)
             }
         }
+        // Dentro de onCreate(), después de configurar btnLogin:
+
+        val tvRegistrarse = findViewById<TextView>(R.id.tvRegistrarse)
+        tvRegistrarse.setOnClickListener {
+            val intent = Intent(this, RegisterActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     private suspend fun loginUsuario(usuario: String, password: String) {
         try {
-            val url = URL("https://teshub-api-500177fee003.herokuapp.com/api/usuarios/login")
+            val url = URL("${BuildConfig.API_BASE_URL}/api/usuarios/login")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.connectTimeout = 15000
