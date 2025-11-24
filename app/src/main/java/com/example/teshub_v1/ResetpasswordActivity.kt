@@ -94,7 +94,6 @@ class ResetpasswordActivity : AppCompatActivity() {
         }
     }
 
-    // Política igual que el backend: mayúscula, minúscula, número, especial, mínimo 4
     private fun cumplePolitica(pwd: String): Boolean {
         val tieneMayus = pwd.any { it.isUpperCase() }
         val tieneMinus = pwd.any { it.isLowerCase() }

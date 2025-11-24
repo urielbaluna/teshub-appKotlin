@@ -19,7 +19,7 @@ class ForgotpasswordActivity : AppCompatActivity() {
     private var isRequestRunning = false
     private val PREFS = "teshub_prefs"
     private val KEY_LAST_REQUEST_TIME = "last_code_request_time"
-    private val COOLDOWN_MS = 60 * 60 * 1000L // 60 minutos (igual que expiración del backend)
+    private val COOLDOWN_MS = 60 * 60 * 1000L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,7 +51,7 @@ class ForgotpasswordActivity : AppCompatActivity() {
 
     private fun solicitarCodigo(correo: String, btnSend: Button) {
         val jsonBody = JSONObject().apply {
-            put("correo", correo) // La API espera el correo en el body
+            put("correo", correo)
         }
 
         val request = JsonObjectRequest(
@@ -67,7 +67,6 @@ class ForgotpasswordActivity : AppCompatActivity() {
 
                 Toast.makeText(this, "Código enviado a tu correo", Toast.LENGTH_SHORT).show()
 
-                // Ir a ResetpasswordActivity y pasar el correo
                 val intent = Intent(this, ResetpasswordActivity::class.java).apply {
                     putExtra("correo", correo)
                 }
@@ -81,7 +80,6 @@ class ForgotpasswordActivity : AppCompatActivity() {
                 val status = error.networkResponse?.statusCode
                 val body = error.networkResponse?.data?.let { String(it) } ?: ""
 
-                // Mensajes amigables según status
                 when (status) {
                     400 -> Toast.makeText(this, "El correo es obligatorio.", Toast.LENGTH_LONG).show()
                     404 -> Toast.makeText(this, "Correo no encontrado.", Toast.LENGTH_LONG).show()
@@ -91,7 +89,6 @@ class ForgotpasswordActivity : AppCompatActivity() {
             }
         )
 
-        // Sin reintentos automáticos → evita duplicidad de correos
         request.retryPolicy = DefaultRetryPolicy(
             5000, // timeout 5s
             0,    // sin reintentos
