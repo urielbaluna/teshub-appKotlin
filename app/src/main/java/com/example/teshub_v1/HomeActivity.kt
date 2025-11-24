@@ -37,7 +37,7 @@ class HomeActivity : AppCompatActivity() {
 
     private suspend fun consultarPerfil(token: String, tvMensaje: TextView) {
         try {
-            val url = URL("https://teshub-api-500177fee003.herokuapp.com/ver-info")
+            val url = URL("http://teshub.urielbaluna.com/api/usuarios/login")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
             connection.setRequestProperty("Authorization", "Bearer $token")

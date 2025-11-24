@@ -4,8 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
-import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
+import com.google.android.material.textfield.TextInputEditText
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,13 +24,18 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val etUsuario = findViewById<EditText>(R.id.etUsuario)
-        val etPassword = findViewById<EditText>(R.id.etPassword)
+        val etUsuario = findViewById<TextInputEditText>(R.id.etUsuario)
+        val etPassword = findViewById<TextInputEditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
+        val tvOlvidar = findViewById<TextView>(R.id.tvOlvidar)
+
+        tvOlvidar.setOnClickListener {
+            startActivity(Intent(this, ForgotpasswordActivity::class.java))
+        }
 
         btnLogin.setOnClickListener {
-            val usuario = etUsuario.text.toString().trim()
-            val password = etPassword.text.toString().trim()
+            val usuario = etUsuario.text?.toString()?.trim().orEmpty()
+            val password = etPassword.text?.toString()?.trim().orEmpty()
 
             if (usuario.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show()
@@ -44,7 +50,7 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun loginUsuario(usuario: String, password: String) {
         try {
-            val url = URL("https://teshub-api-500177fee003.herokuapp.com/api/usuarios/login")
+            val url = URL("http://teshub.urielbaluna.com/api/usuarios/login")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.connectTimeout = 15000
@@ -83,7 +89,6 @@ class MainActivity : AppCompatActivity() {
                 if (responseCode in 200..299 && !responseText.startsWith("<!DOCTYPE")) {
                     try {
                         val jsonResponse = JSONObject(responseText)
-
                         val token = jsonResponse.optString("token", "")
                         val nombre = jsonResponse.optString("nombre", "")
                         val rol = jsonResponse.optString("rol", "")

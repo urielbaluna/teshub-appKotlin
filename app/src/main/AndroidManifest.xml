@@ -2,20 +2,40 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.teshub_v1">
 
+    <!-- Permiso necesario para usar internet -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TeshubV1"
-        android:usesCleartextTraffic="true"
-        android:networkSecurityConfig="@xml/network_security_config">
+        android:usesCleartextTraffic="true">
 
+        <!-- Recuperar contraseña: Pantalla 1 -->
+        <activity
+            android:name=".ForgotpasswordActivity"
+            android:exported="false" />
+
+        <!-- Recuperar contraseña: Pantalla 2 (verificar código) -->
+        <activity
+            android:name=".VerifyCodeActivity"
+            android:exported="false" />
+
+        <!-- Recuperar contraseña: Pantalla 3 (resetear contraseña) -->
+        <activity
+            android:name=".ResetpasswordActivity"
+            android:exported="false" />
+
+        <!-- Pantalla Home -->
         <activity android:name=".HomeActivity" />
-        <activity android:name=".MainActivity"
+
+        <!-- Actividad principal -->
+        <activity
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
