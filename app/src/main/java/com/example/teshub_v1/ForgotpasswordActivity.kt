@@ -6,15 +6,14 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.android.volley.DefaultRetryPolicy
-import com.android.volley.Request
-import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.Volley
-import org.json.JSONObject
+import com.example.teshub_v1.network.RetrofitClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
 class ForgotpasswordActivity : AppCompatActivity() {
-
-    private val URL_SEND_CODE = "http://teshub.urielbaluna.com/api/usuarios/codigo-contrasena"
 
     private var isRequestRunning = false
     private val PREFS = "teshub_prefs"
@@ -29,7 +28,6 @@ class ForgotpasswordActivity : AppCompatActivity() {
         val btnSend = findViewById<Button>(R.id.btnSendCode)
 
         btnSend.setOnClickListener {
-
             if (isRequestRunning) return@setOnClickListener
 
             val correo = etEmail.text.toString().trim()
@@ -45,57 +43,52 @@ class ForgotpasswordActivity : AppCompatActivity() {
 
             btnSend.isEnabled = false
             isRequestRunning = true
+
             solicitarCodigo(correo, btnSend)
         }
     }
 
     private fun solicitarCodigo(correo: String, btnSend: Button) {
-        val jsonBody = JSONObject().apply {
-            put("correo", correo)
-        }
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = RetrofitClient.usuariosService.solicitarCodigoContrasena(
+                    mapOf("correo" to correo)
+                )
 
-        val request = JsonObjectRequest(
-            Request.Method.POST,
-            URL_SEND_CODE,
-            jsonBody,
-            { _ ->
-                isRequestRunning = false
-                btnSend.isEnabled = true
+                withContext(Dispatchers.Main) {
+                    isRequestRunning = false
+                    btnSend.isEnabled = true
 
-                // Guardar cooldown para este correo
-                guardarCooldown(correo)
+                    guardarCooldown(correo)
+                    Toast.makeText(this@ForgotpasswordActivity, response.mensaje, Toast.LENGTH_SHORT).show()
 
-                Toast.makeText(this, "Código enviado a tu correo", Toast.LENGTH_SHORT).show()
-
-                val intent = Intent(this, ResetpasswordActivity::class.java).apply {
-                    putExtra("correo", correo)
+                    val intent = Intent(this@ForgotpasswordActivity, ResetpasswordActivity::class.java).apply {
+                        putExtra("correo", correo)
+                    }
+                    startActivity(intent)
+                    finish()
                 }
-                startActivity(intent)
-                finish()
-            },
-            { error ->
-                isRequestRunning = false
-                btnSend.isEnabled = true
 
-                val status = error.networkResponse?.statusCode
-                val body = error.networkResponse?.data?.let { String(it) } ?: ""
+            } catch (e: HttpException) {
+                withContext(Dispatchers.Main) {
+                    isRequestRunning = false
+                    btnSend.isEnabled = true
 
-                when (status) {
-                    400 -> Toast.makeText(this, "El correo es obligatorio.", Toast.LENGTH_LONG).show()
-                    404 -> Toast.makeText(this, "Correo no encontrado.", Toast.LENGTH_LONG).show()
-                    500 -> Toast.makeText(this, "Error del servidor al enviar el correo.", Toast.LENGTH_LONG).show()
-                    else -> Toast.makeText(this, "Error ($status): $body", Toast.LENGTH_LONG).show()
+                    when (e.code()) {
+                        400 -> Toast.makeText(this@ForgotpasswordActivity, "El correo es obligatorio o inválido.", Toast.LENGTH_LONG).show()
+                        404 -> Toast.makeText(this@ForgotpasswordActivity, "Correo no encontrado.", Toast.LENGTH_LONG).show()
+                        500 -> Toast.makeText(this@ForgotpasswordActivity, "Error del servidor.", Toast.LENGTH_LONG).show()
+                        else -> Toast.makeText(this@ForgotpasswordActivity, "Error (${e.code()}): Verifica tu conexión", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    isRequestRunning = false
+                    btnSend.isEnabled = true
+                    Toast.makeText(this@ForgotpasswordActivity, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
-        )
-
-        request.retryPolicy = DefaultRetryPolicy(
-            5000, // timeout 5s
-            0,    // sin reintentos
-            1f
-        )
-
-        Volley.newRequestQueue(this).add(request)
+        }
     }
 
     private fun estaEnCooldown(correo: String): Boolean {

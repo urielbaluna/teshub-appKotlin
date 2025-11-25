@@ -2,16 +2,19 @@ package com.example.teshub_v1
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.android.volley.Request
-import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.Volley
+import com.example.teshub_v1.network.RetrofitClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import retrofit2.HttpException
 
 class ResetpasswordActivity : AppCompatActivity() {
-
-    private val URL_RESET_PASSWORD = "http://teshub.urielbaluna.com/api/usuarios/actualizar-contrasena"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +41,7 @@ class ResetpasswordActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             if (codigo.length != 6 || !codigo.all { it.isDigit() }) {
-                Toast.makeText(this, "El código debe ser de 6 dígitos", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "El código debe ser de 6 dígitos numéricos", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (nueva != repetir) {
@@ -52,45 +55,58 @@ class ResetpasswordActivity : AppCompatActivity() {
 
             btnActualizar.isEnabled = false
 
-            val jsonBody = JSONObject().apply {
-                put("correo", correo)
-                put("codigo", codigo)
-                put("nuevaContrasena", nueva)
-            }
+            actualizarContrasena(correo, codigo, nueva, btnActualizar)
+        }
+    }
 
-            val request = JsonObjectRequest(
-                Request.Method.PUT,
-                URL_RESET_PASSWORD,
-                jsonBody,
-                { _ ->
-                    Toast.makeText(this, "Contraseña actualizada correctamente", Toast.LENGTH_LONG).show()
-                    startActivity(Intent(this, MainActivity::class.java))
+    private fun actualizarContrasena(correo: String, codigo: String, nueva: String, btn: Button) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val body = mapOf(
+                    "correo" to correo,
+                    "codigo" to codigo,
+                    "nuevaContrasena" to nueva
+                )
+
+                val response = RetrofitClient.usuariosService.actualizarContrasena(body)
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@ResetpasswordActivity, response.mensaje, Toast.LENGTH_LONG).show()
+
+                    val intent = Intent(this@ResetpasswordActivity, MainActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
                     finish()
-                },
-                { error ->
-                    btnActualizar.isEnabled = true
-                    val status = error.networkResponse?.statusCode
-                    val body = error.networkResponse?.data?.let { String(it) } ?: ""
-                    val mensaje = try {
-                        JSONObject(body).optString("mensaje")
-                    } catch (_: Exception) { "" }
+                }
 
-                    when {
-                        status == 400 && mensaje.contains("Código", ignoreCase = true) ->
-                            Toast.makeText(this, "Código inválido o expirado. Solicita uno nuevo.", Toast.LENGTH_LONG).show()
-                        status == 400 && mensaje.contains("contraseña", ignoreCase = true) ->
-                            Toast.makeText(this, "Contraseña no válida. Verifica los requisitos.", Toast.LENGTH_LONG).show()
-                        status == 404 ->
-                            Toast.makeText(this, "Usuario no encontrado o desactivado.", Toast.LENGTH_LONG).show()
-                        status == 500 ->
-                            Toast.makeText(this, "Error del servidor al actualizar.", Toast.LENGTH_LONG).show()
-                        else ->
-                            Toast.makeText(this, "Error ($status): $mensaje", Toast.LENGTH_LONG).show()
+            } catch (e: HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                val mensajeServidor = try {
+                    JSONObject(errorBody).optString("mensaje", "")
+                } catch (ex: Exception) { "" }
+
+                withContext(Dispatchers.Main) {
+                    btn.isEnabled = true
+
+                    when (e.code()) {
+                        400 -> {
+                            if (mensajeServidor.contains("Código", true)) {
+                                Toast.makeText(this@ResetpasswordActivity, "Código inválido o expirado.", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(this@ResetpasswordActivity, mensajeServidor.ifEmpty { "Datos inválidos." }, Toast.LENGTH_LONG).show()
+                            }
+                        }
+                        404 -> Toast.makeText(this@ResetpasswordActivity, "Usuario no encontrado.", Toast.LENGTH_LONG).show()
+                        500 -> Toast.makeText(this@ResetpasswordActivity, "Error del servidor.", Toast.LENGTH_LONG).show()
+                        else -> Toast.makeText(this@ResetpasswordActivity, "Error (${e.code()}): $mensajeServidor", Toast.LENGTH_LONG).show()
                     }
                 }
-            )
-
-            Volley.newRequestQueue(this).add(request)
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    btn.isEnabled = true
+                    Toast.makeText(this@ResetpasswordActivity, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 
