@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
 class CrearPublicacionActivity : AppCompatActivity() {
@@ -35,7 +34,6 @@ class CrearPublicacionActivity : AppCompatActivity() {
                 Toast.makeText(this, "Título y descripción son obligatorios", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-
             enviarPublicacion(titulo, descripcion, colaboradores)
         }
     }
@@ -58,7 +56,7 @@ class CrearPublicacionActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 // Nota: Enviamos null en archivos por ahora
-                val response = RetrofitClient.teshubApi.crearPublicacion(
+                val response = RetrofitClient.publicacionesService.crearPublicacion(
                     "Bearer $token",
                     tituloPart,
                     descPart,
@@ -68,7 +66,7 @@ class CrearPublicacionActivity : AppCompatActivity() {
 
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@CrearPublicacionActivity, "¡Proyecto publicado!", Toast.LENGTH_LONG).show()
-                    finish() // Cierra la pantalla y vuelve al Home
+                    finish()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {

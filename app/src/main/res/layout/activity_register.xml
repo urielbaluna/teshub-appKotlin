@@ -25,208 +25,86 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Imagen de Perfil -->
-        <de.hdodenhof.circleimageview.CircleImageView
-            android:id="@+id/ivProfileImage"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:layout_marginTop="24dp"
-            android:src="@drawable/ic_person"
-            app:civ_border_color="#2DA036"
-            app:civ_border_width="2dp"
+        <!-- Campo: Nombre -->
+        <EditText
+            android:id="@+id/etNombre"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="Nombre"
+            android:inputType="textPersonName"
+            android:padding="12dp"
+            android:layout_marginTop="32dp"
+            android:background="@android:drawable/edit_text"
             app:layout_constraintTop_toBottomOf="@id/tvTituloRegistro"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Botón para seleccionar imagen -->
-        <Button
-            android:id="@+id/btnSelectImage"
-            android:layout_width="wrap_content"
+        <!-- Campo: Apellido -->
+        <EditText
+            android:id="@+id/etApellido"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Seleccionar Foto"
-            android:layout_marginTop="8dp"
-            app:layout_constraintTop_toBottomOf="@id/ivProfileImage"
+            android:hint="Apellido"
+            android:inputType="textPersonName"
+            android:padding="12dp"
+            android:layout_marginTop="16dp"
+            android:background="@android:drawable/edit_text"
+            app:layout_constraintTop_toBottomOf="@id/etNombre"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-
-        <!-- Campo: Nombre -->
-        <LinearLayout
-            android:id="@+id/llNombre"
+        <!-- Campo: Correo -->
+        <EditText
+            android:id="@+id/etCorreoRegistro"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="#E0E0E0"
-            android:padding="12dp"
-            android:layout_marginTop="24dp"
-            android:gravity="center_vertical"
-            app:layout_constraintTop_toBottomOf="@id/btnSelectImage"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_person" />
-
-            <EditText
-                android:id="@+id/etNombre"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Nombre"
-                android:textColorHint="#666666"
-                android:background="@null"
-                android:paddingStart="12dp"
-                android:inputType="textPersonName" />
-        </LinearLayout>
-
-        <!-- Campo: Apellido -->
-        <LinearLayout
-            android:id="@+id/llApellido"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="#E0E0E0"
+            android:hint="Correo electrónico"
+            android:inputType="textEmailAddress"
             android:padding="12dp"
             android:layout_marginTop="16dp"
-            android:gravity="center_vertical"
-            app:layout_constraintTop_toBottomOf="@+id/llNombre"
+            android:background="@android:drawable/edit_text"
+            app:layout_constraintTop_toBottomOf="@id/etApellido"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_person" />
-
-            <EditText
-                android:id="@+id/etApellido"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Apellido"
-                android:textColorHint="#666666"
-                android:background="@null"
-                android:paddingStart="12dp"
-                android:inputType="textPersonName" />
-        </LinearLayout>
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <!-- Campo: Matrícula -->
-        <LinearLayout
-            android:id="@+id/llMatricula"
+        <EditText
+            android:id="@+id/etMatricula"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="#E0E0E0"
+            android:hint="Matrícula"
+            android:inputType="number"
             android:padding="12dp"
             android:layout_marginTop="16dp"
-            android:gravity="center_vertical"
-            app:layout_constraintTop_toBottomOf="@+id/llApellido"
+            android:background="@android:drawable/edit_text"
+            app:layout_constraintTop_toBottomOf="@id/etCorreoRegistro"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_matricula" />
-
-            <EditText
-                android:id="@+id/etMatricula"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Matrícula"
-                android:textColorHint="#666666"
-                android:background="@null"
-                android:paddingStart="12dp"
-                android:inputType="number" />
-        </LinearLayout>
-
-        <!-- Campo: Correo -->
-        <LinearLayout
-            android:id="@+id/llCorreo"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="#E0E0E0"
-            android:padding="12dp"
-            android:layout_marginTop="16dp"
-            android:gravity="center_vertical"
-            app:layout_constraintTop_toBottomOf="@+id/llMatricula"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_email" />
-
-            <EditText
-                android:id="@+id/etCorreoRegistro"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Correo electrónico"
-                android:textColorHint="#666666"
-                android:background="@null"
-                android:paddingStart="12dp"
-                android:inputType="textEmailAddress" />
-        </LinearLayout>
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <!-- Campo: Contraseña -->
-        <LinearLayout
-            android:id="@+id/llPassword"
+        <EditText
+            android:id="@+id/etPasswordRegistro"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="#E0E0E0"
+            android:hint="Contraseña"
+            android:inputType="textPassword"
             android:padding="12dp"
             android:layout_marginTop="16dp"
-            android:gravity="center_vertical"
-            app:layout_constraintTop_toBottomOf="@id/llCorreo"
+            android:background="@android:drawable/edit_text"
+            app:layout_constraintTop_toBottomOf="@id/etMatricula"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_lock" />
-
-            <EditText
-                android:id="@+id/etPasswordRegistro"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Contraseña"
-                android:textColorHint="#666666"
-                android:background="@null"
-                android:paddingStart="12dp"
-                android:inputType="textPassword" />
-
-            <!-- ICONO DE OJO AÑADIDO -->
-            <ImageView
-                android:id="@+id/ivTogglePassword"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_visibility_off"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="Mostrar u ocultar contraseña"/>
-
-        </LinearLayout>
-
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <!-- Mensaje de requisitos -->
         <TextView
             android:id="@+id/tvRequisitos"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Requiere: Mayúscula, minúscula, número, símbolo y minimo cuatro caracteres."
+            android:text="La contraseña debe tener:\n• Al menos una mayúscula\n• Al menos una minúscula\n• Al menos un número\n• Al menos un caracter especial\n• Mínimo 4 caracteres"
             android:textSize="12sp"
             android:textColor="#666666"
             android:layout_marginTop="8dp"
-            app:layout_constraintTop_toBottomOf="@id/llPassword"
+            app:layout_constraintTop_toBottomOf="@id/etPasswordRegistro"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
@@ -239,9 +117,7 @@
             android:textSize="16sp"
             android:padding="16dp"
             android:layout_marginTop="24dp"
-            android:textColor="@android:color/white"
-            android:backgroundTint="#2DA036"
-            app:layout_constraintTop_toBottomOf="@+id/tvRequisitos"
+            app:layout_constraintTop_toBottomOf="@id/tvRequisitos"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
@@ -256,7 +132,7 @@
             android:layout_marginTop="16dp"
             android:clickable="true"
             android:focusable="true"
-            app:layout_constraintTop_toBottomOf="@+id/btnRegistrar"
+            app:layout_constraintTop_toBottomOf="@id/btnRegistrar"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 

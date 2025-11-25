@@ -28,9 +28,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val etUsuario = findViewById<EditText>(R.id.etUsuario) // Asume R.id.etUsuario existe
-        val etPassword = findViewById<EditText>(R.id.etPassword) // Asume R.id.etPassword existe
-        val btnLogin = findViewById<Button>(R.id.btnLogin) // Asume R.id.btnLogin existe
+        val etUsuario = findViewById<EditText>(R.id.etUsuario)
+        val etPassword = findViewById<EditText>(R.id.etPassword)
+        val btnLogin = findViewById<Button>(R.id.btnLogin)
+        val tvForgotPassword = findViewById<TextView>(R.id.tvForgotPassword)
 
         btnLogin.setOnClickListener {
             val usuario = etUsuario.text.toString().trim()
@@ -45,7 +46,10 @@ class MainActivity : AppCompatActivity() {
                 loginUsuario(usuario, password)
             }
         }
-        // Dentro de onCreate(), después de configurar btnLogin:
+        tvForgotPassword.setOnClickListener {
+            val intent = Intent(this, ForgotpasswordActivity::class.java)
+            startActivity(intent)
+        }
 
         val tvRegistrarse = findViewById<TextView>(R.id.tvRegistrarse)
         tvRegistrarse.setOnClickListener {
@@ -61,7 +65,7 @@ class MainActivity : AppCompatActivity() {
 
             // 2. Llamar al servicio Retrofit. Retrofit y Moshi manejan la conexión HTTP
             // y el mapeo de JSON a la Data Class LoginResponse.
-            val response = RetrofitClient.teshubApi.login(loginRequest)
+            val response = RetrofitClient.usuariosService.login(loginRequest)
 
             // 3. Éxito: Navegar y guardar el token (en el hilo principal)
             withContext(Dispatchers.Main) {

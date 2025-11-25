@@ -61,11 +61,11 @@ class PublicacionesFragment : Fragment() {
             return
         }
 
-        progressBar.visibility = View.VISIBLE // Mostrar carga
+        progressBar.visibility = View.VISIBLE
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = RetrofitClient.teshubApi.listarPublicaciones("Bearer $token")
+                val response = RetrofitClient.publicacionesService.listarPublicaciones("Bearer $token")
 
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
