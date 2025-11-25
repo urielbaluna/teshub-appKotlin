@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.ksp)
 }
 
 android {
@@ -10,12 +9,11 @@ android {
 
     buildFeatures {
         buildConfig = true
-        viewBinding = true
     }
 
     defaultConfig {
         applicationId = "com.example.teshub_v1"
-        minSdk = 30
+        minSdk = 33
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -46,20 +44,12 @@ android {
 }
 
 dependencies {
-    implementation(libs.okhttp)
-    implementation(libs.hilt.android)
-    implementation(libs.glide.core)
-    ksp(libs.glide.ksp)
-    implementation(libs.circleimageview)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.retrofit.core)
-    implementation(libs.moshi.kotlin)
-    implementation(libs.retrofit.converter.moshi)
-    implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

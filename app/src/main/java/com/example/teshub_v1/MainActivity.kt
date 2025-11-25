@@ -1,3 +1,4 @@
+// src/main/java/com/example/teshub_v1/MainActivity.kt
 package com.example.teshub_v1
 
 import android.content.Intent
@@ -12,9 +13,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+// 💡 Importaciones para el manejo de la nueva capa de red
 import com.example.teshub_v1.network.RetrofitClient
 import retrofit2.HttpException
-import org.json.JSONObject
+import org.json.JSONObject // Mantenido para parsear mensajes de error del servidor
+
+// 💡 Debes cambiar el destino de navegación
+// import com.example.teshub_v1.HomeActivity // OLD
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,9 +28,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val etUsuario = findViewById<EditText>(R.id.etUsuario)
-        val etPassword = findViewById<EditText>(R.id.etPassword)
-        val btnLogin = findViewById<Button>(R.id.btnLogin)
+        val etUsuario = findViewById<EditText>(R.id.etUsuario) // Asume R.id.etUsuario existe
+        val etPassword = findViewById<EditText>(R.id.etPassword) // Asume R.id.etPassword existe
+        val btnLogin = findViewById<Button>(R.id.btnLogin) // Asume R.id.btnLogin existe
 
         btnLogin.setOnClickListener {
             val usuario = etUsuario.text.toString().trim()
@@ -39,6 +45,7 @@ class MainActivity : AppCompatActivity() {
                 loginUsuario(usuario, password)
             }
         }
+        // Dentro de onCreate(), después de configurar btnLogin:
 
         val tvRegistrarse = findViewById<TextView>(R.id.tvRegistrarse)
         tvRegistrarse.setOnClickListener {
@@ -54,7 +61,7 @@ class MainActivity : AppCompatActivity() {
 
             // 2. Llamar al servicio Retrofit. Retrofit y Moshi manejan la conexión HTTP
             // y el mapeo de JSON a la Data Class LoginResponse.
-            val response = RetrofitClient.usuariosService.login(loginRequest)
+            val response = RetrofitClient.teshubApi.login(loginRequest)
 
             // 3. Éxito: Navegar y guardar el token (en el hilo principal)
             withContext(Dispatchers.Main) {
@@ -87,6 +94,7 @@ class MainActivity : AppCompatActivity() {
             }
 
         } catch (e: HttpException) {
+            // Manejar errores HTTP (ej. 401 Unauthorized por credenciales incorrectas)
             val errorBody = e.response()?.errorBody()?.string()
             val errorMessage = try {
                 // Intenta parsear el campo 'mensaje' del JSON de error de tu API de Node.js
