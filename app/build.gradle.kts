@@ -7,6 +7,10 @@ android {
     namespace = "com.example.teshub_v1"
     compileSdk = 36
 
+    buildFeatures{
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.example.teshub_v1"
         minSdk = 33
@@ -24,6 +28,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "API_BASE_URL", "\"${project.property("API_BASE_URL")}\"")
+        }
+        debug {
+            buildConfigField("String", "API_BASE_URL", "\"${project.property("API_BASE_URL")}\"")
         }
     }
     compileOptions {

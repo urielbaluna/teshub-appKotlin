@@ -7,6 +7,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.teshub_v1.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -44,7 +45,7 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun loginUsuario(usuario: String, password: String) {
         try {
-            val url = URL("https://teshub-api-500177fee003.herokuapp.com/api/usuarios/login")
+            val url = URL("${BuildConfig.API_BASE_URL}/api/usuarios/login")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.connectTimeout = 15000
@@ -88,6 +89,10 @@ class MainActivity : AppCompatActivity() {
                         val nombre = jsonResponse.optString("nombre", "")
                         val rol = jsonResponse.optString("rol", "")
 
+                        // 🔹 Guardar token en SharedPreferences
+                        val sharedPref = getSharedPreferences("sesion", MODE_PRIVATE)
+                        sharedPref.edit().putString("token", token).apply()
+
                         Toast.makeText(
                             this@MainActivity,
                             "Bienvenido $nombre ($rol)",
@@ -95,8 +100,6 @@ class MainActivity : AppCompatActivity() {
                         ).show()
 
                         val intent = Intent(this@MainActivity, HomeActivity::class.java)
-                        intent.putExtra("usuario", usuario)
-                        intent.putExtra("token", token)
                         startActivity(intent)
                         finish()
                     } catch (e: Exception) {
