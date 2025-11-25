@@ -1,4 +1,4 @@
-package com.example.teshub_v1.network
+package com.example.teshub_v1.data.network
 
 import com.example.teshub_v1.BuildConfig
 import com.squareup.moshi.Moshi
