@@ -1,6 +1,5 @@
-package com.example.teshub_v1
+package com.example.teshub_v1.ui.auth
 
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -8,6 +7,8 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.teshub_v1.BuildConfig
+import com.example.teshub_v1.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -15,7 +16,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.DataOutputStream
-import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -71,7 +71,7 @@ class RegisterActivity : AppCompatActivity() {
 
         // Link: Ya tengo cuenta
         tvYaTengoCuenta.setOnClickListener {
-            finish() // Regresa al login
+            finish()
         }
     }
 
@@ -148,7 +148,8 @@ class RegisterActivity : AppCompatActivity() {
                 if (responseCode in 200..299) {
                     try {
                         val jsonResponse = JSONObject(responseText)
-                        val mensaje = jsonResponse.optString("mensaje", "Usuario registrado correctamente")
+                        val mensaje =
+                            jsonResponse.optString("mensaje", "Usuario registrado correctamente")
 
                         Toast.makeText(this@RegisterActivity, mensaje, Toast.LENGTH_SHORT).show()
 
@@ -161,7 +162,7 @@ class RegisterActivity : AppCompatActivity() {
                             "Registro exitoso. Ahora inicia sesión.",
                             Toast.LENGTH_LONG
                         ).show()
-                        finish() // Regresar al login
+                        finish()
                     }
                 } else {
                     val mensajeError = try {
@@ -187,8 +188,6 @@ class RegisterActivity : AppCompatActivity() {
 
     // Función para hacer login automático después del registro
     private suspend fun loginDespuesDeRegistro(correo: String, password: String) {
-        // Reutiliza la misma lógica del MainActivity para login
-        // O simplemente cierra y deja que el usuario haga login manualmente
         Toast.makeText(this, "Registro exitoso. Ahora inicia sesión.", Toast.LENGTH_LONG).show()
         finish()
     }

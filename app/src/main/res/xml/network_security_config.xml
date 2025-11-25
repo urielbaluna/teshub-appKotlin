@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Permite HTTP hacia tu servidor de desarrollo -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">teshub.urielbaluna.com</domain>
-    </domain-config>
-
-    <!-- También puedes permitir IPs locales si las usas -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">192.168.0.30</domain>
     </domain-config>
 </network-security-config>

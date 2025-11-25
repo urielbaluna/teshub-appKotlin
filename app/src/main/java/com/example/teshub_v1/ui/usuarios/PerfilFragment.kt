@@ -1,4 +1,4 @@
-package com.example.teshub_v1.fragments
+package com.example.teshub_v1.ui.usuarios
 
 import android.content.Context
 import android.content.Intent
@@ -12,15 +12,17 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import com.bumptech.glide.Glide // 💡 Para cargar imágenes desde URL
+import com.bumptech.glide.Glide
 import com.example.teshub_v1.BuildConfig
-import com.example.teshub_v1.MainActivity // Para redirigir al login en logout
 import com.example.teshub_v1.R
-import com.example.teshub_v1.network.RetrofitClient
+import com.example.teshub_v1.ui.usuarios.ActualizarUsuarioActivity
+import com.example.teshub_v1.data.network.RetrofitClient
+import com.example.teshub_v1.ui.auth.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import retrofit2.HttpException
 
 class PerfilFragment : Fragment() {
@@ -32,7 +34,7 @@ class PerfilFragment : Fragment() {
     private lateinit var tvUserMatricula: TextView
     private lateinit var tvTotalPublications: TextView
     private lateinit var tvFeaturedPublicationTitle: TextView
-    private lateinit var layoutFeaturedPublication: LinearLayout // Para ocultar si no hay destacada
+    private lateinit var layoutFeaturedPublication: LinearLayout
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -56,6 +58,11 @@ class PerfilFragment : Fragment() {
             logout()
         }
 
+        val btnSettings = view.findViewById<ImageView>(R.id.iv_edit_name)
+        btnSettings.setOnClickListener {
+            startActivity(Intent(context, ActualizarUsuarioActivity::class.java))
+        }
+
         // Cargar datos del perfil
         loadUserProfile()
 
@@ -69,13 +76,13 @@ class PerfilFragment : Fragment() {
         if (token.isNullOrEmpty()) {
             Toast.makeText(context, "No hay sesión activa. Por favor, inicia sesión.", Toast.LENGTH_LONG).show()
             // Redirigir al login si no hay token
-            logout() // O simplemente navegar
+            logout()
             return
         }
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val perfil = RetrofitClient.teshubApi.getPerfil("Bearer $token")
+                val perfil = RetrofitClient.usuariosService.getPerfil("Bearer $token")
 
                 withContext(Dispatchers.Main) {
                     tvUserName.text = "${perfil.nombre} ${perfil.apellido}"
@@ -85,14 +92,18 @@ class PerfilFragment : Fragment() {
                     tvTotalPublications.text = perfil.totalPublicaciones.toString()
 
                     // Manejar la imagen de perfil
-                    perfil.imagen?.let { imageUrl ->
-                        val fullImageUrl = BuildConfig.API_BASE_URL + imageUrl // Construir la URL completa
+                    if (!perfil.imagen.isNullOrEmpty()) {
+                        val baseUrl = BuildConfig.API_BASE_URL
+                        val finalBaseUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
+
+                        val fullImageUrl = finalBaseUrl + perfil.imagen
+
                         Glide.with(this@PerfilFragment)
                             .load(fullImageUrl)
-                            .placeholder(R.drawable.ic_profile) // Placeholder si la carga falla
-                            .error(R.drawable.ic_profile) // Imagen de error
+                            .placeholder(R.drawable.ic_profile)
+                            .error(R.drawable.ic_profile)
                             .into(ivProfileAvatar)
-                    } ?: run {
+                    } else {
                         ivProfileAvatar.setImageResource(R.drawable.ic_profile)
                     }
 
@@ -108,7 +119,7 @@ class PerfilFragment : Fragment() {
             } catch (e: HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
                 val errorMessage = try {
-                    org.json.JSONObject(errorBody).optString("mensaje", "Error al cargar perfil.")
+                    JSONObject(errorBody).optString("mensaje", "Error al cargar perfil.")
                 } catch (jsonE: Exception) {
                     "Error de servidor: ${e.code()}"
                 }
@@ -120,7 +131,8 @@ class PerfilFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Error de conexión: ${e.message}", Toast.LENGTH_LONG)
+                        .show()
                     Log.e("PerfilFragment", e.stackTraceToString())
                 }
             }
@@ -130,7 +142,7 @@ class PerfilFragment : Fragment() {
     private fun logout() {
         val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
         with(sharedPref?.edit()) {
-            this?.remove("token") // Elimina el token
+            this?.remove("token")
             this?.apply()
         }
         val intent = Intent(activity, MainActivity::class.java)
