@@ -58,13 +58,41 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <Button
+            android:id="@+id/btn_buscar_pdf"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Seleccionar archivo PDF"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="8dp"
+            android:padding="14dp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
+            android:backgroundTint="#2DA036"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Archivo seleccionado"
+            android:layout_marginBottom="16dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_nombre_archivo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:enabled="false"
+                android:focusable="false"
+                android:cursorVisible="false"
+                android:textColor="@color/black"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <Button
             android:id="@+id/btn_publicar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Publicar Proyecto"
             android:backgroundTint="#2DA036"
+            android:textColor="@android:color/white"
             android:padding="12dp"
             android:textStyle="bold"/>
-
     </LinearLayout>
 </ScrollView>
+

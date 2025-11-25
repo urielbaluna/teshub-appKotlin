@@ -1,5 +1,4 @@
-// src/main/java/com/example/teshub_v1/MainActivity.kt
-package com.example.teshub_v1
+package com.example.teshub_v1.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
@@ -9,29 +8,37 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import com.example.teshub_v1.R
+import com.example.teshub_v1.data.network.RetrofitClient
+import com.example.teshub_v1.ui.home.HomeContainerActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-// 💡 Importaciones para el manejo de la nueva capa de red
-import com.example.teshub_v1.network.RetrofitClient
+import org.json.JSONObject
 import retrofit2.HttpException
-import org.json.JSONObject // Mantenido para parsear mensajes de error del servidor
-
-// 💡 Debes cambiar el destino de navegación
-// import com.example.teshub_v1.HomeActivity // OLD
 
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+
         setContentView(R.layout.activity_main)
+
+        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", null)
+        if (token != null) {
+            irAlHome()
+            return
+        }
 
         val etUsuario = findViewById<EditText>(R.id.etUsuario)
         val etPassword = findViewById<EditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
         val tvForgotPassword = findViewById<TextView>(R.id.tvForgotPassword)
+        val tvRegistrarse = findViewById<TextView>(R.id.tvRegistrarse)
 
         btnLogin.setOnClickListener {
             val usuario = etUsuario.text.toString().trim()
@@ -42,81 +49,68 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            // Deshabilitar botón para evitar doble click
+            btnLogin.isEnabled = false
             CoroutineScope(Dispatchers.IO).launch {
-                loginUsuario(usuario, password)
+                loginUsuario(usuario, password, btnLogin)
             }
         }
+
         tvForgotPassword.setOnClickListener {
-            val intent = Intent(this, ForgotpasswordActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, ForgotpasswordActivity::class.java))
         }
 
-        val tvRegistrarse = findViewById<TextView>(R.id.tvRegistrarse)
         tvRegistrarse.setOnClickListener {
-            val intent = Intent(this, RegisterActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, RegisterActivity::class.java))
         }
     }
 
-    private suspend fun loginUsuario(usuario: String, password: String) {
+    private suspend fun loginUsuario(usuario: String, password: String, btnLogin: Button) {
         try {
-            // 1. Preparar la petición JSON (correo y contrasena)
             val loginRequest = mapOf("correo" to usuario, "contrasena" to password)
 
-            // 2. Llamar al servicio Retrofit. Retrofit y Moshi manejan la conexión HTTP
-            // y el mapeo de JSON a la Data Class LoginResponse.
+            // Llamada al servicio
             val response = RetrofitClient.usuariosService.login(loginRequest)
 
-            // 3. Éxito: Navegar y guardar el token (en el hilo principal)
             withContext(Dispatchers.Main) {
-                val token = response.token
-                val nombre = response.nombre
-                val rol = response.rol
+                btnLogin.isEnabled = true
 
-                // Guardar el token en SharedPreferences
-                val sharedPref = getSharedPreferences("sesion", MODE_PRIVATE)
-                with(sharedPref.edit()) {
-                    putString("token", token)
-                    apply()
-                }
+                // Guardar sesión
+                getSharedPreferences("sesion", MODE_PRIVATE).edit()
+                    .putString("token", response.token)
+                    .apply()
 
-                Toast.makeText(
-                    this@MainActivity,
-                    "Bienvenido $nombre ($rol)",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this@MainActivity, "Bienvenido ${response.nombre}", Toast.LENGTH_SHORT).show()
 
-                // 💡 Navegar a la Activity Contenedora con la barra inferior
-                val intent = Intent(this@MainActivity, HomeContainerActivity::class.java)
-
-                // Pasar datos necesarios
-                intent.putExtra("nombre", nombre)
-                intent.putExtra("rol", rol)
-
-                startActivity(intent)
-                finish()
+                irAlHome()
             }
 
         } catch (e: HttpException) {
-            // Manejar errores HTTP (ej. 401 Unauthorized por credenciales incorrectas)
             val errorBody = e.response()?.errorBody()?.string()
             val errorMessage = try {
-                // Intenta parsear el campo 'mensaje' del JSON de error de tu API de Node.js
                 JSONObject(errorBody).optString("mensaje", "Credenciales incorrectas")
             } catch (jsonE: Exception) {
                 "Error de servidor: ${e.code()}"
             }
 
             withContext(Dispatchers.Main) {
+                btnLogin.isEnabled = true
                 Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_LONG).show()
                 Log.e("LoginError", "HTTP ${e.code()}: $errorMessage")
             }
         } catch (e: Exception) {
-            // Manejar errores de red general (Timeout, DNS, conexión perdida)
             withContext(Dispatchers.Main) {
+                btnLogin.isEnabled = true
                 Toast.makeText(this@MainActivity, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
                 Log.e("LoginError", e.stackTraceToString())
             }
         }
+    }
+
+    private fun irAlHome() {
+        val intent = Intent(this, HomeContainerActivity::class.java)
+        // Pasar datos extras si los necesitas, aunque PerfilFragment los carga de la API
+        startActivity(intent)
+        finish()
     }
 }

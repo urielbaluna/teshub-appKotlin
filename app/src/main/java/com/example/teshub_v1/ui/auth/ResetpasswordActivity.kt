@@ -1,4 +1,4 @@
-package com.example.teshub_v1
+package com.example.teshub_v1.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,7 +6,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.teshub_v1.network.RetrofitClient
+import com.example.teshub_v1.R
+import com.example.teshub_v1.data.network.RetrofitClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -71,7 +72,8 @@ class ResetpasswordActivity : AppCompatActivity() {
                 val response = RetrofitClient.usuariosService.actualizarContrasena(body)
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@ResetpasswordActivity, response.mensaje, Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@ResetpasswordActivity, response.mensaje, Toast.LENGTH_LONG)
+                        .show()
 
                     val intent = Intent(this@ResetpasswordActivity, MainActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -91,20 +93,47 @@ class ResetpasswordActivity : AppCompatActivity() {
                     when (e.code()) {
                         400 -> {
                             if (mensajeServidor.contains("Código", true)) {
-                                Toast.makeText(this@ResetpasswordActivity, "Código inválido o expirado.", Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    this@ResetpasswordActivity,
+                                    "Código inválido o expirado.",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             } else {
-                                Toast.makeText(this@ResetpasswordActivity, mensajeServidor.ifEmpty { "Datos inválidos." }, Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    this@ResetpasswordActivity,
+                                    mensajeServidor.ifEmpty { "Datos inválidos." },
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
                         }
-                        404 -> Toast.makeText(this@ResetpasswordActivity, "Usuario no encontrado.", Toast.LENGTH_LONG).show()
-                        500 -> Toast.makeText(this@ResetpasswordActivity, "Error del servidor.", Toast.LENGTH_LONG).show()
-                        else -> Toast.makeText(this@ResetpasswordActivity, "Error (${e.code()}): $mensajeServidor", Toast.LENGTH_LONG).show()
+
+                        404 -> Toast.makeText(
+                            this@ResetpasswordActivity,
+                            "Usuario no encontrado.",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        500 -> Toast.makeText(
+                            this@ResetpasswordActivity,
+                            "Error del servidor.",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        else -> Toast.makeText(
+                            this@ResetpasswordActivity,
+                            "Error (${e.code()}): $mensajeServidor",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     btn.isEnabled = true
-                    Toast.makeText(this@ResetpasswordActivity, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@ResetpasswordActivity,
+                        "Error de conexión: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }

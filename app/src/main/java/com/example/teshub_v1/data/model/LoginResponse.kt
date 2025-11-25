@@ -1,4 +1,4 @@
-package com.example.teshub_v1.model
+package com.example.teshub_v1.data.model
 
 data class LoginResponse(
     val token: String,
@@ -8,3 +8,4 @@ data class LoginResponse(
     val correo: String,
     val rol: String
 )
+

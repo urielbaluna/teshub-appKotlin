@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.example.teshub_v1">
 
-    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
         android:allowBackup="true"
@@ -17,33 +17,25 @@
         tools:targetApi="31">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.auth.MainActivity"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".HomeContainerActivity"
-            android:exported="false" />
+        <activity android:name=".ui.auth.RegisterActivity" android:exported="false"/>
+        <activity android:name=".ui.auth.ForgotpasswordActivity" android:exported="false"/>
+        <activity android:name=".ui.auth.ResetpasswordActivity" android:exported="false"/>
 
-        <activity
-            android:name=".CrearPublicacionActivity"
-            android:exported="false" />
+        <activity android:name=".ui.home.HomeContainerActivity" android:exported="false"/>
 
-        <activity
-            android:name=".RegisterActivity"
-            android:exported="false" />
+        <activity android:name=".ui.usuarios.ActualizarUsuarioActivity" android:exported="false"/>
 
-        <activity
-            android:name=".ForgotpasswordActivity"
-            android:exported="false" />
+        <activity android:name=".ui.publicaciones.CrearPublicacionActivity" android:exported="false"/>
 
-        <activity
-            android:name=".ResetpasswordActivity"
-            android:exported="false" />
+        <activity android:name=".ui.comentarios.ComentariosActivity" android:exported="false"/>
 
     </application>
 
