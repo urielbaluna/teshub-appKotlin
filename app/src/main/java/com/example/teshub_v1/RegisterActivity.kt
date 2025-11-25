@@ -187,7 +187,7 @@ class RegisterActivity : AppCompatActivity() {
                         when {
                             // IMPORTANTE: ajusta estas frases para que coincidan con la respuesta REAL de tu API
                             errorBody.contains("El correo ya está registrado", ignoreCase = true) -> {
-                                mensajeDeError = "Este correo electrónico ya está en uso."
+                                mensajeDeError = "Este correo electrónico ya está en uso"
                                 findViewById<EditText>(R.id.etCorreoRegistro).error = "Correo ya existe"
                             }
                             // VALIDACIÓN CORREGIDA PARA LA MATRÍCULA
