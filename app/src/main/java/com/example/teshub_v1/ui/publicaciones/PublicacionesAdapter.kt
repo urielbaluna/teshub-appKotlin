@@ -1,4 +1,4 @@
-package com.example.teshub_v1.adapter
+package com.example.teshub_v1.ui.publicaciones
 
 import android.view.LayoutInflater
 import android.view.View
@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.teshub_v1.R
-import com.example.teshub_v1.model.Publicacion
+import com.example.teshub_v1.data.model.Publicacion
 
 class PublicacionesAdapter(
     private var publicaciones: List<Publicacion>,

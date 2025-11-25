@@ -1,4 +1,4 @@
-package com.example.teshub_v1
+package com.example.teshub_v1.ui.auth
 
 import android.os.Bundle
 import android.util.Log
@@ -7,6 +7,8 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.teshub_v1.BuildConfig
+import com.example.teshub_v1.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -146,7 +148,8 @@ class RegisterActivity : AppCompatActivity() {
                 if (responseCode in 200..299) {
                     try {
                         val jsonResponse = JSONObject(responseText)
-                        val mensaje = jsonResponse.optString("mensaje", "Usuario registrado correctamente")
+                        val mensaje =
+                            jsonResponse.optString("mensaje", "Usuario registrado correctamente")
 
                         Toast.makeText(this@RegisterActivity, mensaje, Toast.LENGTH_SHORT).show()
 

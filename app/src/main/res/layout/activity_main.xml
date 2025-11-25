@@ -9,7 +9,7 @@
     android:gravity="center_horizontal"
     android:paddingHorizontal="32dp"
     android:background="@color/white"
-    tools:context=".MainActivity">
+    tools:context=".ui.auth.MainActivity">
 
     <ImageView
         android:id="@+id/imageView"
@@ -96,7 +96,7 @@
         android:clickable="true"
         android:focusable="true"
         android:text="¿Olvidaste tu contraseña?"
-        android:textColor="#2196F3"
+        android:textColor="#1976D2"
         android:textSize="14sp" />
 
     <TextView

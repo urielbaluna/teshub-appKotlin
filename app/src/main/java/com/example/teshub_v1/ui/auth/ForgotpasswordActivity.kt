@@ -1,4 +1,4 @@
-package com.example.teshub_v1
+package com.example.teshub_v1.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,7 +6,9 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.teshub_v1.network.RetrofitClient
+import com.example.teshub_v1.R
+import com.example.teshub_v1.ui.auth.ResetpasswordActivity
+import com.example.teshub_v1.data.network.RetrofitClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,9 +62,16 @@ class ForgotpasswordActivity : AppCompatActivity() {
                     btnSend.isEnabled = true
 
                     guardarCooldown(correo)
-                    Toast.makeText(this@ForgotpasswordActivity, response.mensaje, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@ForgotpasswordActivity,
+                        response.mensaje,
+                        Toast.LENGTH_SHORT
+                    ).show()
 
-                    val intent = Intent(this@ForgotpasswordActivity, ResetpasswordActivity::class.java).apply {
+                    val intent = Intent(
+                        this@ForgotpasswordActivity,
+                        ResetpasswordActivity::class.java
+                    ).apply {
                         putExtra("correo", correo)
                     }
                     startActivity(intent)
@@ -75,17 +84,40 @@ class ForgotpasswordActivity : AppCompatActivity() {
                     btnSend.isEnabled = true
 
                     when (e.code()) {
-                        400 -> Toast.makeText(this@ForgotpasswordActivity, "El correo es obligatorio o inválido.", Toast.LENGTH_LONG).show()
-                        404 -> Toast.makeText(this@ForgotpasswordActivity, "Correo no encontrado.", Toast.LENGTH_LONG).show()
-                        500 -> Toast.makeText(this@ForgotpasswordActivity, "Error del servidor.", Toast.LENGTH_LONG).show()
-                        else -> Toast.makeText(this@ForgotpasswordActivity, "Error (${e.code()}): Verifica tu conexión", Toast.LENGTH_LONG).show()
+                        400 -> Toast.makeText(
+                            this@ForgotpasswordActivity,
+                            "El correo es obligatorio o inválido.",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        404 -> Toast.makeText(
+                            this@ForgotpasswordActivity,
+                            "Correo no encontrado.",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        500 -> Toast.makeText(
+                            this@ForgotpasswordActivity,
+                            "Error del servidor.",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        else -> Toast.makeText(
+                            this@ForgotpasswordActivity,
+                            "Error (${e.code()}): Verifica tu conexión",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     isRequestRunning = false
                     btnSend.isEnabled = true
-                    Toast.makeText(this@ForgotpasswordActivity, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@ForgotpasswordActivity,
+                        "Error de conexión: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }

@@ -1,7 +1,7 @@
-package com.example.teshub_v1.network
+package com.example.teshub_v1.data.network
 
-import com.example.teshub_v1.model.CrearPublicacionResponse
-import com.example.teshub_v1.model.PublicacionesListResponse
+import com.example.teshub_v1.data.model.CrearPublicacionResponse
+import com.example.teshub_v1.data.model.PublicacionesListResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.GET

@@ -1,11 +1,11 @@
-package com.example.teshub_v1
+package com.example.teshub_v1.ui.publicaciones
 
-import android.content.Context
 import android.os.Bundle
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.teshub_v1.network.RetrofitClient
+import com.example.teshub_v1.R
+import com.example.teshub_v1.data.network.RetrofitClient
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +39,7 @@ class CrearPublicacionActivity : AppCompatActivity() {
     }
 
     private fun enviarPublicacion(titulo: String, descripcion: String, colaboradores: String) {
-        val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        val sharedPref = getSharedPreferences("sesion", MODE_PRIVATE)
         val token = sharedPref.getString("token", null)
 
         if (token == null) {
@@ -65,12 +65,20 @@ class CrearPublicacionActivity : AppCompatActivity() {
                 )
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@CrearPublicacionActivity, "¡Proyecto publicado!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@CrearPublicacionActivity,
+                        "¡Proyecto publicado!",
+                        Toast.LENGTH_LONG
+                    ).show()
                     finish()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@CrearPublicacionActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@CrearPublicacionActivity,
+                        "Error: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }
