@@ -55,7 +55,7 @@ class HomeContainerActivity : AppCompatActivity() {
         }
 
         if (savedInstanceState == null) {
-            bottomNavigationView.selectedItemId = R.id.nav_home // Esto dispara el listener de arriba automáticamente
+            bottomNavigationView.selectedItemId = R.id.nav_home
         }
     }
 
