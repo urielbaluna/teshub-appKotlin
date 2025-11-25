@@ -61,7 +61,7 @@ class MainActivity : AppCompatActivity() {
 
             // 2. Llamar al servicio Retrofit. Retrofit y Moshi manejan la conexión HTTP
             // y el mapeo de JSON a la Data Class LoginResponse.
-            val response = RetrofitClient.teshubApi.login(loginRequest)
+            val response = RetrofitClient.usuariosService.login(loginRequest)
 
             // 3. Éxito: Navegar y guardar el token (en el hilo principal)
             withContext(Dispatchers.Main) {
