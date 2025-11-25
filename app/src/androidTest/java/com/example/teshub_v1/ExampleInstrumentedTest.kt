@@ -22,3 +22,4 @@ class ExampleInstrumentedTest {
         assertEquals("com.example.teshub_v1", appContext.packageName)
     }
 }
+
