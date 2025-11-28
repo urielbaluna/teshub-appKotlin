@@ -58,6 +58,7 @@
                 android:layout_height="wrap_content"
                 android:text="2023-10-27"
                 android:textSize="12sp"/>
+
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>
