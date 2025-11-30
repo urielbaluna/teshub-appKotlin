@@ -39,8 +39,9 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
     private val editarEventoLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // Recargar la actividad para ver los cambios
-            recreate()
+            // Esto ya no es suficiente, la actividad debe recargarse con datos nuevos
+            finish() // Cierra la actividad actual
+            startActivity(intent) // Y la vuelve a abrir para recargar todo
         }
     }
 
@@ -67,7 +68,7 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
 
         evento.urlFoto?.let {
             ivFoto.visibility = View.VISIBLE
-            val fullImageUrl = "${BuildConfig.API_BASE_URL}/$it"
+            val fullImageUrl = if (it.startsWith("http")) it else "${BuildConfig.API_BASE_URL}/$it"
             Glide.with(this).load(fullImageUrl).into(ivFoto)
         }
 
@@ -141,14 +142,23 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun formatIsoDate(isoDate: String): String {
         return try {
-            val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-            parser.timeZone = TimeZone.getTimeZone("UTC")
+            // --- CORRECCIÓN: Intentar primero con el formato que incluye zona horaria ---
+            val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
             val date = parser.parse(isoDate)
-            val formatter = SimpleDateFormat("dd 'de' MMMM, yyyy 'a las' HH:mm 'hrs'", Locale.getDefault())
-            formatter.timeZone = TimeZone.getDefault()
+            val formatter = SimpleDateFormat("dd 'de' MMMM, yyyy 'a las' hh:mm a", Locale.getDefault())
             date?.let { formatter.format(it) } ?: isoDate
         } catch (e: Exception) {
-            isoDate
+            try {
+                // Fallback por si la fecha es antigua (formato UTC)
+                val fallbackParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+                fallbackParser.timeZone = TimeZone.getTimeZone("UTC")
+                val date = fallbackParser.parse(isoDate)
+                val formatter = SimpleDateFormat("dd 'de' MMMM, yyyy 'a las' hh:mm a", Locale.getDefault())
+                formatter.timeZone = TimeZone.getDefault() // Convertir a la zona local para mostrar
+                date?.let { formatter.format(it) } ?: isoDate
+            } catch (e2: Exception) {
+                isoDate // Si todo falla, mostrar la fecha tal cual
+            }
         }
     }
 }

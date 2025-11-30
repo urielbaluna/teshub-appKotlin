@@ -95,9 +95,8 @@ class CrearEventoActivity : AppCompatActivity() {
     }
 
     private fun mostrarTimePicker() {
-        // --- CORRECTED IMPLEMENTATION: Use MaterialTimePicker ---
         val picker = MaterialTimePicker.Builder()
-            .setTimeFormat(TimeFormat.CLOCK_12H) // Use 12-hour format with AM/PM
+            .setTimeFormat(TimeFormat.CLOCK_12H)
             .setHour(12)
             .setMinute(0)
             .setTitleText("Selecciona la hora del evento")
@@ -107,7 +106,6 @@ class CrearEventoActivity : AppCompatActivity() {
             fechaHoraSeleccionada.set(Calendar.HOUR_OF_DAY, picker.hour)
             fechaHoraSeleccionada.set(Calendar.MINUTE, picker.minute)
 
-            // Update the UI to show the selected date and time
             val formatoUsuario = SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault())
             etFecha.setText(formatoUsuario.format(fechaHoraSeleccionada.time))
         }
@@ -126,8 +124,8 @@ class CrearEventoActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val formatoISO = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-                formatoISO.timeZone = TimeZone.getTimeZone("UTC")
+                // --- CORRECCIÓN: Usar formato ISO 8601 con zona horaria (XXX) ---
+                val formatoISO = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
                 val fechaISO = formatoISO.format(fechaHoraSeleccionada.time)
 
                 val tituloPart = etTitulo.text.toString().toRequestBody("text/plain".toMediaTypeOrNull())

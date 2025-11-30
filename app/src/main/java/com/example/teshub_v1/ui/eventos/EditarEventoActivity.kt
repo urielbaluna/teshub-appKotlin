@@ -88,11 +88,19 @@ class EditarEventoActivity : AppCompatActivity() {
         longitudSeleccionada = eventoActual.ubicacion.longitud
         tvCoordenadas.text = String.format("Lat: %.4f, Lng: %.4f", latitudSeleccionada, longitudSeleccionada)
 
-        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
+        // --- CORRECCIÓN: Usar formato que entiende la zona horaria del servidor ---
+        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
+        try {
+            val date = parser.parse(eventoActual.fecha)
+            date?.let { fechaHoraSeleccionada.time = it }
+        } catch (e: Exception) {
+            // Fallback por si la fecha antigua no tiene zona horaria
+            val fallbackParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+            fallbackParser.timeZone = TimeZone.getTimeZone("UTC")
+            val date = fallbackParser.parse(eventoActual.fecha)
+            date?.let { fechaHoraSeleccionada.time = it }
         }
-        val date = parser.parse(eventoActual.fecha)
-        date?.let { fechaHoraSeleccionada.time = it }
+
         val formatoUsuario = SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault())
         etFecha.setText(formatoUsuario.format(fechaHoraSeleccionada.time))
     }
@@ -143,8 +151,8 @@ class EditarEventoActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val formatoISO = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-                formatoISO.timeZone = TimeZone.getTimeZone("UTC")
+                // --- CORRECCIÓN: Usar formato ISO 8601 con zona horaria (XXX) ---
+                val formatoISO = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
                 val fechaISO = formatoISO.format(fechaHoraSeleccionada.time)
 
                 val eventoRequest = EditarEventoRequest(
