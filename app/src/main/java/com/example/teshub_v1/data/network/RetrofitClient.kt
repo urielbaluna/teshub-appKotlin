@@ -26,4 +26,9 @@ object RetrofitClient {
     val publicacionesService: PublicacionesService by lazy {
         retrofit.create(PublicacionesService::class.java)
     }
+
+    // --- Servicio de Eventos Añadido ---
+    val eventosService: EventosService by lazy {
+        retrofit.create(EventosService::class.java)
+    }
 }

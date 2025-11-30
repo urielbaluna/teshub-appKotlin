@@ -6,9 +6,10 @@ import android.view.View
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import com.example.teshub_v1.ui.publicaciones.CrearPublicacionActivity
 import com.example.teshub_v1.R
+import com.example.teshub_v1.ui.eventos.EventosFragment // Importación añadida
 import com.example.teshub_v1.ui.usuarios.PerfilFragment
+import com.example.teshub_v1.ui.publicaciones.CrearPublicacionActivity
 import com.example.teshub_v1.ui.publicaciones.PublicacionesFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -20,11 +21,7 @@ class HomeContainerActivity : AppCompatActivity() {
         setContentView(R.layout.activity_home_container)
 
         val bottomNavigationView: BottomNavigationView = findViewById(R.id.bottom_navigation)
-
-        // Obtener referencia a la barra de búsqueda
         val searchBar: EditText = findViewById(R.id.search_bar)
-
-        //Boton agregar publicacion
         val fab: FloatingActionButton = findViewById(R.id.fab_add_post)
 
         fab.setOnClickListener {
@@ -32,22 +29,25 @@ class HomeContainerActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // Configurar la visibilidad inicial del buscador y el botón de agregar publicación
+        // Configuración inicial
         searchBar.visibility = View.VISIBLE
         fab.visibility = View.VISIBLE
 
-        //Implementar la lógica de visibilidad basada en la selección
         bottomNavigationView.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
-                    // En la vista de Inicio (Publicaciones), el buscador y agregar publicación debe ser VISIBLE
                     searchBar.visibility = View.VISIBLE
                     fab.visibility = View.VISIBLE
                     loadFragment(PublicacionesFragment())
                     true
                 }
+                R.id.nav_eventos -> {
+                    searchBar.visibility = View.GONE
+                    fab.visibility = View.GONE
+                    loadFragment(EventosFragment())
+                    true
+                }
                 R.id.nav_profile -> {
-                    // En la vista de Perfil, el buscador y el botón de agregar publicación debe ser OCULTO (View.GONE libera el espacio)
                     searchBar.visibility = View.GONE
                     fab.visibility = View.GONE
                     loadFragment(PerfilFragment())
@@ -57,6 +57,7 @@ class HomeContainerActivity : AppCompatActivity() {
             }
         }
 
+        // Cargar el fragmento inicial
         if (savedInstanceState == null) {
             bottomNavigationView.selectedItemId = R.id.nav_home
         }

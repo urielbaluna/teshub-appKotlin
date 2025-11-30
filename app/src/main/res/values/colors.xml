@@ -2,4 +2,8 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Colores personalizados de la App -->
+    <color name="verde_teshub">#4CAF50</color>
+
 </resources>

@@ -83,7 +83,7 @@ class PublicacionesFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
                     Log.e("PublicacionesFragment", "Error: ${e.message}")
-                    Toast.makeText(context, "Error al cargar: ${e.message}", Toast.LENGTH_SHORT)
+                    Toast.makeText(requireContext(), "Error al cargar: ${e.message}", Toast.LENGTH_SHORT)
                         .show()
                 }
             }
