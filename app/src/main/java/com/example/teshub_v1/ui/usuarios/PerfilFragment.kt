@@ -17,21 +17,11 @@ import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.example.teshub_v1.BuildConfig
 import com.example.teshub_v1.R
-import com.example.teshub_v1.ui.usuarios.ActualizarUsuarioActivity
 import com.example.teshub_v1.data.network.RetrofitClient
 import com.example.teshub_v1.ui.auth.MainActivity
-import android.widget.TextView
-import android.widget.Toast
-import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.example.teshub_v1.BuildConfig
-import com.example.teshub_v1.R
 import com.example.teshub_v1.data.model.PublicacionInfo
-import com.example.teshub_v1.data.network.RetrofitClient
-import com.example.teshub_v1.ui.auth.MainActivity
-import com.example.teshub_v1.ui.usuarios.ActualizarUsuarioActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -226,25 +216,6 @@ class PerfilFragment : Fragment() {
     }
 
 
-}
-                    if (!perfil.publicacionDestacada.isNullOrEmpty()) {
-                        tvFeaturedPublicationTitle.text = perfil.publicacionDestacada
-                        layoutFeaturedPublication.visibility = View.VISIBLE
-                    } else layoutFeaturedPublication.visibility = View.GONE
-                }
-            } catch (e: HttpException) {
-                val errorBody = e.response()?.errorBody()?.string()
-                val errorMessage = try { JSONObject(errorBody).optString("mensaje", "Error al cargar perfil.") } catch (_: Exception) { "Error de servidor: ${e.code()}" }
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                    if (e.code() == 401) logout()
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) { Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show() }
-            }
-        }
-    }
-
     private fun loadUserPublications(token: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -289,17 +260,5 @@ class PerfilFragment : Fragment() {
                 }
             }
         }
-    }
-
-    private fun logout() {
-        val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
-        with(sharedPref?.edit()) {
-            this?.remove("token")
-            this?.apply()
-        }
-        val intent = Intent(activity, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
-        activity?.finish()
     }
 }
