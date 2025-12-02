@@ -62,14 +62,20 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         val tvDescripcion: TextView = findViewById(R.id.tvDescripcionDetalle)
 
         tvTitulo.text = evento.titulo
-        tvOrganizadores.text = "Organizado por: ${evento.organizadoresTexto()}"
-        tvFecha.text = "Fecha: ${formatIsoDate(evento.fecha)}"
+        tvOrganizadores.text = evento.organizadoresTexto()
+        tvFecha.text = formatIsoDate(evento.fecha)
         tvDescripcion.text = evento.descripcion
 
         evento.urlFoto?.let {
-            ivFoto.visibility = View.VISIBLE
             val fullImageUrl = if (it.startsWith("http")) it else "${BuildConfig.API_BASE_URL}/$it"
-            Glide.with(this).load(fullImageUrl).into(ivFoto)
+            Glide.with(this)
+                .load(fullImageUrl)
+                .centerCrop()
+                .placeholder(android.R.color.darker_gray)
+                .into(ivFoto)
+        } ?: run {
+            // Si no hay foto, mostrar placeholder
+            ivFoto.setImageResource(android.R.color.darker_gray)
         }
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment

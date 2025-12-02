@@ -73,13 +73,48 @@
                 android:clickable="true"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <Button
-            android:id="@+id/btnSeleccionarFotoEvento"
-            android:layout_width="wrap_content"
+
+        <!-- Reemplaza el Button btnSeleccionarFotoEvento con esto: -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:backgroundTint="?attr/colorPrimary"
-            android:text="Añadir Foto" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <Button
+                android:id="@+id/btnSeleccionarFotoEvento"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:backgroundTint="?attr/colorPrimary"
+                android:text="Añadir Foto" />
+
+            <TextView
+                android:id="@+id/tvNombreFoto"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="8dp"
+                android:textSize="14sp"
+                android:textColor="@color/black"
+                android:maxLines="1"
+                android:ellipsize="middle"
+                android:visibility="gone"
+                tools:text="imagen_evento.jpg"
+                tools:visibility="visible"/>
+
+            <ImageButton
+                android:id="@+id/btnDeseleccionarFoto"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:contentDescription="Deseleccionar foto"
+                android:visibility="gone"
+                tools:visibility="visible"/>
+
+        </LinearLayout>
 
         <Button
             android:id="@+id/btnSeleccionarUbicacion"

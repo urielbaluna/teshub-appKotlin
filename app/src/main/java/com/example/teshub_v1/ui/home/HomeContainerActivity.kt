@@ -14,7 +14,7 @@ import com.example.teshub_v1.ui.usuarios.PerfilFragment
 import com.example.teshub_v1.ui.publicaciones.PublicacionesFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-
+import com.example.teshub_v1.ui.eventos.EventosFragment
 class HomeContainerActivity : AppCompatActivity() {
 
     private var currentFragment: Fragment? = null
@@ -61,6 +61,13 @@ class HomeContainerActivity : AppCompatActivity() {
                     searchBar.visibility = View.VISIBLE
                     fab.visibility = View.VISIBLE
                     loadFragment(PublicacionesFragment())
+                    true
+                }
+                R.id.nav_eventos -> {
+                    // En la vista de Eventos, OCULTAR buscador y mostrar botón de agregar
+                    searchBar.visibility = View.GONE
+                    fab.visibility = View.GONE  // O View.VISIBLE si quieres el botón de crear evento
+                    loadFragment(EventosFragment())
                     true
                 }
                 R.id.nav_profile -> {

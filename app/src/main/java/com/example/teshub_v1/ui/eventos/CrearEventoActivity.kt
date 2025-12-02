@@ -7,7 +7,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,7 +30,6 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-import java.util.TimeZone
 
 class CrearEventoActivity : AppCompatActivity() {
 
@@ -37,6 +38,8 @@ class CrearEventoActivity : AppCompatActivity() {
     private lateinit var etDescripcion: TextInputEditText
     private lateinit var etFecha: TextInputEditText
     private lateinit var btnSeleccionarFoto: Button
+    private lateinit var tvNombreFoto: TextView
+    private lateinit var btnDeseleccionarFoto: ImageButton
     private lateinit var btnSeleccionarUbicacion: Button
     private lateinit var tvCoordenadas: TextView
     private lateinit var btnCrearEvento: Button
@@ -49,12 +52,16 @@ class CrearEventoActivity : AppCompatActivity() {
     private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             fotoUri = it
-            btnSeleccionarFoto.text = "Foto seleccionada"
+            val nombreArchivo = obtenerNombreArchivo(it)
+            tvNombreFoto.text = nombreArchivo
+            tvNombreFoto.visibility = View.VISIBLE
+            btnDeseleccionarFoto.visibility = View.VISIBLE
+            btnSeleccionarFoto.text = "Cambiar Foto"
         }
     }
 
     private val locationPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        result ->
+            result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val data = result.data
             latitudSeleccionada = data?.getDoubleExtra("latitud", 0.0)
@@ -72,12 +79,15 @@ class CrearEventoActivity : AppCompatActivity() {
         etDescripcion = findViewById(R.id.etDescripcionEvento)
         etFecha = findViewById(R.id.etFechaEvento)
         btnSeleccionarFoto = findViewById(R.id.btnSeleccionarFotoEvento)
+        tvNombreFoto = findViewById(R.id.tvNombreFoto)
+        btnDeseleccionarFoto = findViewById(R.id.btnDeseleccionarFoto)
         btnSeleccionarUbicacion = findViewById(R.id.btnSeleccionarUbicacion)
         tvCoordenadas = findViewById(R.id.tvCoordenadasSeleccionadas)
         btnCrearEvento = findViewById(R.id.btnCrearEvento)
 
         etFecha.setOnClickListener { mostrarDatePicker() }
         btnSeleccionarFoto.setOnClickListener { imagePickerLauncher.launch("image/*") }
+        btnDeseleccionarFoto.setOnClickListener { deseleccionarFoto() }
         btnSeleccionarUbicacion.setOnClickListener { locationPickerLauncher.launch(Intent(this, SeleccionarUbicacionActivity::class.java)) }
         btnCrearEvento.setOnClickListener { crearEvento() }
     }
@@ -85,7 +95,7 @@ class CrearEventoActivity : AppCompatActivity() {
     private fun mostrarDatePicker() {
         val calendario = fechaHoraSeleccionada
         val datePickerDialog = DatePickerDialog(this, {
-            _, year, month, dayOfMonth ->
+                _, year, month, dayOfMonth ->
             fechaHoraSeleccionada.set(Calendar.YEAR, year)
             fechaHoraSeleccionada.set(Calendar.MONTH, month)
             fechaHoraSeleccionada.set(Calendar.DAY_OF_MONTH, dayOfMonth)
@@ -113,6 +123,25 @@ class CrearEventoActivity : AppCompatActivity() {
         picker.show(supportFragmentManager, "TimePicker")
     }
 
+    private fun obtenerNombreArchivo(uri: Uri): String {
+        var nombre = "archivo_seleccionado"
+        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (nameIndex != -1 && cursor.moveToFirst()) {
+                nombre = cursor.getString(nameIndex)
+            }
+        }
+        return nombre
+    }
+
+    private fun deseleccionarFoto() {
+        fotoUri = null
+        tvNombreFoto.text = ""
+        tvNombreFoto.visibility = View.GONE
+        btnDeseleccionarFoto.visibility = View.GONE
+        btnSeleccionarFoto.text = "Añadir Foto"
+    }
+
     private fun crearEvento() {
         if (etTitulo.text.isNullOrEmpty() || etOrganizadores.text.isNullOrEmpty() || etDescripcion.text.isNullOrEmpty() || etFecha.text.isNullOrEmpty() || latitudSeleccionada == null) {
             Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
@@ -124,7 +153,6 @@ class CrearEventoActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                // --- CORRECCIÓN: Usar formato ISO 8601 con zona horaria (XXX) ---
                 val formatoISO = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
                 val fechaISO = formatoISO.format(fechaHoraSeleccionada.time)
 
