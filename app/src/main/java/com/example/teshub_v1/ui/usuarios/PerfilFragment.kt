@@ -1,5 +1,6 @@
 package com.example.teshub_v1.ui.usuarios
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -19,6 +20,18 @@ import com.example.teshub_v1.R
 import com.example.teshub_v1.ui.usuarios.ActualizarUsuarioActivity
 import com.example.teshub_v1.data.network.RetrofitClient
 import com.example.teshub_v1.ui.auth.MainActivity
+import android.widget.TextView
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.example.teshub_v1.BuildConfig
+import com.example.teshub_v1.R
+import com.example.teshub_v1.data.model.PublicacionInfo
+import com.example.teshub_v1.data.network.RetrofitClient
+import com.example.teshub_v1.ui.auth.MainActivity
+import com.example.teshub_v1.ui.usuarios.ActualizarUsuarioActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,6 +49,8 @@ class PerfilFragment : Fragment() {
     private lateinit var tvTotalPublications: TextView
     private lateinit var tvFeaturedPublicationTitle: TextView
     private lateinit var layoutFeaturedPublication: LinearLayout
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapterPerfil: PerfilPublicacionAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -52,12 +67,21 @@ class PerfilFragment : Fragment() {
         tvTotalPublications = view.findViewById(R.id.tv_total_publications)
         tvFeaturedPublicationTitle = view.findViewById(R.id.tv_featured_publication_title)
         layoutFeaturedPublication = view.findViewById(R.id.layout_destacada)
+        recyclerView = view.findViewById(R.id.rv_publicaciones_usuario)
 
-        // Configurar botón de logout
+        recyclerView.layoutManager = LinearLayoutManager(context)
+
+        // Adapter con click y delete
+        adapterPerfil = PerfilPublicacionAdapter(
+            mutableListOf(),
+            onItemClick = { pub -> Log.d("PERFIL", "Click → ${pub.proyecto_nombre}") },
+            onDeleteClick = { pub -> confirmDelete(pub) }
+        )
+        recyclerView.adapter = adapterPerfil
+
+        // Botones
         val btnLogout = view.findViewById<ImageView>(R.id.btn_logout)
-        btnLogout.setOnClickListener {
-            logout()
-        }
+        btnLogout.setOnClickListener { logout() }
 
         val btnSettings = view.findViewById<ImageView>(R.id.iv_edit_name)
         btnSettings.setOnClickListener {
@@ -89,15 +113,15 @@ class PerfilFragment : Fragment() {
 
         if (token.isNullOrEmpty()) {
             Toast.makeText(context, "No hay sesión activa. Por favor, inicia sesión.", Toast.LENGTH_LONG).show()
-            // Redirigir al login si no hay token
             logout()
             return
         }
 
+        loadUserPublications(token)
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val perfil = RetrofitClient.usuariosService.getPerfil("Bearer $token")
-
                 withContext(Dispatchers.Main) {
                     tvUserName.text = "${perfil.nombre} ${perfil.apellido}"
                     tvUserRole.text = "Rol: ${perfil.rol}"
@@ -105,13 +129,9 @@ class PerfilFragment : Fragment() {
                     tvUserMatricula.text = "Matrícula: ${perfil.matricula}"
                     tvTotalPublications.text = perfil.totalPublicaciones.toString()
 
-                    // Manejar la imagen de perfil
                     if (!perfil.imagen.isNullOrEmpty()) {
                         val baseUrl = BuildConfig.API_BASE_URL
-                        val finalBaseUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
-
-                        val fullImageUrl = finalBaseUrl + perfil.imagen
-
+                        val fullImageUrl = if (baseUrl.endsWith("/")) baseUrl + perfil.imagen else "$baseUrl/${perfil.imagen}"
                         Glide.with(this@PerfilFragment)
                             .load(fullImageUrl)
                             .placeholder(R.drawable.ic_profile)
@@ -206,4 +226,80 @@ class PerfilFragment : Fragment() {
     }
 
 
+}
+                    if (!perfil.publicacionDestacada.isNullOrEmpty()) {
+                        tvFeaturedPublicationTitle.text = perfil.publicacionDestacada
+                        layoutFeaturedPublication.visibility = View.VISIBLE
+                    } else layoutFeaturedPublication.visibility = View.GONE
+                }
+            } catch (e: HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                val errorMessage = try { JSONObject(errorBody).optString("mensaje", "Error al cargar perfil.") } catch (_: Exception) { "Error de servidor: ${e.code()}" }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                    if (e.code() == 401) logout()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show() }
+            }
+        }
+    }
+
+    private fun loadUserPublications(token: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = RetrofitClient.publicacionesService.obtenerSoloPublicaciones("Bearer $token")
+                withContext(Dispatchers.Main) { adapterPerfil.updateList(response.publicaciones) }
+            } catch (e: Exception) {
+                Log.e("PERFIL", "Error obteniendo publicaciones: ${e.message}")
+            }
+        }
+    }
+
+    private fun confirmDelete(publicacion: PublicacionInfo) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Eliminar publicación")
+            .setMessage("¿Estás seguro de eliminar la publicación \"${publicacion.proyecto_nombre}\"?")
+            .setPositiveButton("Aceptar") { _, _ -> eliminarPublicacion(publicacion) }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun eliminarPublicacion(publicacion: PublicacionInfo) {
+        val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        val token = sharedPref?.getString("token", null) ?: return
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = RetrofitClient.publicacionesService
+                    .eliminarPublicacion(publicacion.id_publi, "Bearer $token")
+
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        adapterPerfil.removeItem(publicacion)
+                        Toast.makeText(context, "Publicación eliminada", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Error al eliminar publicación", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
+                    Log.e("PERFIL", e.stackTraceToString())
+                }
+            }
+        }
+    }
+
+    private fun logout() {
+        val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        with(sharedPref?.edit()) {
+            this?.remove("token")
+            this?.apply()
+        }
+        val intent = Intent(activity, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        activity?.finish()
+    }
 }
