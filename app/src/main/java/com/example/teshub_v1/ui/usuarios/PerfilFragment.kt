@@ -10,6 +10,16 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.PopupMenu
+import android.widget.TextView
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import com.bumptech.glide.Glide
+import com.example.teshub_v1.BuildConfig
+import com.example.teshub_v1.R
+import com.example.teshub_v1.ui.usuarios.ActualizarUsuarioActivity
+import com.example.teshub_v1.data.network.RetrofitClient
+import com.example.teshub_v1.ui.auth.MainActivity
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -78,7 +88,22 @@ class PerfilFragment : Fragment() {
             startActivity(Intent(context, ActualizarUsuarioActivity::class.java))
         }
 
+        val btnConfig = view.findViewById<ImageView>(R.id.btn_settings)
+        btnConfig.setOnClickListener {
+            val popup = PopupMenu(requireContext(), btnConfig)
+            popup.menu.add("Eliminar cuenta")
+            popup.setOnMenuItemClickListener { item ->
+                if (item.title == "Eliminar cuenta"){
+                mostrarDialogoEliminar()
+                }
+                true
+            }
+            popup.show()
+        }
+
+        // Cargar datos del perfil
         loadUserProfile()
+
         return view
     }
 
@@ -116,6 +141,92 @@ class PerfilFragment : Fragment() {
                         ivProfileAvatar.setImageResource(R.drawable.ic_profile)
                     }
 
+                    // Manejar la publicación destacada
+                    if (!perfil.publicacionDestacada.isNullOrEmpty()) {
+                        tvFeaturedPublicationTitle.text = perfil.publicacionDestacada
+                        layoutFeaturedPublication.visibility = View.VISIBLE
+                    } else {
+                        layoutFeaturedPublication.visibility = View.GONE
+                    }
+                }
+
+            } catch (e: HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                val errorMessage = try {
+                    JSONObject(errorBody).optString("mensaje", "Error al cargar perfil.")
+                } catch (jsonE: Exception) {
+                    "Error de servidor: ${e.code()}"
+                }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                    Log.e("PerfilFragment", "HTTP ${e.code()}: $errorMessage")
+                    // Si es 401 Unauthorized, el token ha expirado o es inválido.
+                    if (e.code() == 401) logout()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error de conexión: ${e.message}", Toast.LENGTH_LONG)
+                        .show()
+                    Log.e("PerfilFragment", e.stackTraceToString())
+                }
+            }
+        }
+    }
+
+    private fun logout() {
+        val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        with(sharedPref?.edit()) {
+            this?.remove("token")
+            this?.apply()
+        }
+        val intent = Intent(activity, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        activity?.finish()
+    }
+
+    private fun eliminarCuenta(){
+        val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        val token = sharedPref?.getString("token", null)
+
+        if (token.isNullOrEmpty()) {
+            Toast.makeText(context, "No hay sesión activa. Por favor, inicia sesión.", Toast.LENGTH_LONG).show()
+            // Redirigir al login si no hay token
+            logout()
+            return
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val body = emptyMap<String, String>()
+                RetrofitClient.usuariosService.eliminarCuenta("Bearer $token", body)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Cuenta eliminada exitosamente", Toast.LENGTH_LONG).show()
+                    logout()
+                }
+
+
+            } catch (e: Exception){
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error al eliminar cuenta: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun mostrarDialogoEliminar(){
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Eliminar cuenta")
+            .setMessage("¿Estás seguro de que deseas eliminar tu cuenta?")
+            .setPositiveButton("Eliminar") { _, _ ->
+                eliminarCuenta()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+
+    }
+
+
+}
                     if (!perfil.publicacionDestacada.isNullOrEmpty()) {
                         tvFeaturedPublicationTitle.text = perfil.publicacionDestacada
                         layoutFeaturedPublication.visibility = View.VISIBLE

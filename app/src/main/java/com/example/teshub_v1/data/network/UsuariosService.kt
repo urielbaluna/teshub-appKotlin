@@ -6,6 +6,7 @@ import com.example.teshub_v1.data.model.GeneralResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
@@ -44,4 +45,11 @@ interface UsuariosService {
         @Part("contrasena") contrasena: RequestBody? = null,
         @Part imagen: MultipartBody.Part? = null
     ): GeneralResponse
+
+    @POST("api/usuarios/eliminar")
+    suspend fun eliminarCuenta(
+        @Header("Authorization") token: String,
+        @Body body: Map<String, String> = emptyMap()
+    ): GeneralResponse
+
 }
