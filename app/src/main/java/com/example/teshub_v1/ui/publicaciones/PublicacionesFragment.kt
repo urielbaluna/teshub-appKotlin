@@ -13,7 +13,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.teshub_v1.R
-import com.example.teshub_v1.ui.publicaciones.PublicacionesAdapter
+import com.example.teshub_v1.data.model.Publicacion
 import com.example.teshub_v1.data.network.RetrofitClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +26,8 @@ class PublicacionesFragment : Fragment() {
     private lateinit var adapter: PublicacionesAdapter
     private lateinit var progressBar: ProgressBar
     private lateinit var tvEmpty: TextView
+
+    private var allPublicaciones: List<Publicacion> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -71,7 +73,8 @@ class PublicacionesFragment : Fragment() {
                     progressBar.visibility = View.GONE
 
                     if (response.publicaciones.isNotEmpty()) {
-                        adapter.updateList(response.publicaciones)
+                        allPublicaciones = response.publicaciones
+                        adapter.updateList(allPublicaciones)
                         tvEmpty.visibility = View.GONE
                         recyclerView.visibility = View.VISIBLE
                     } else {
@@ -87,6 +90,27 @@ class PublicacionesFragment : Fragment() {
                         .show()
                 }
             }
+        }
+    }
+
+    fun filter(query: String) {
+        val filteredList = if (query.isEmpty()) {
+            allPublicaciones
+        } else {
+            val lowerCaseQuery = query.lowercase()
+            allPublicaciones.filter {
+                it.nombre.lowercase().contains(lowerCaseQuery) || it.descripcion.lowercase().contains(lowerCaseQuery)
+            }
+        }
+        adapter.updateList(filteredList)
+
+        if (filteredList.isEmpty()) {
+            tvEmpty.text = if (query.isEmpty()) "No hay publicaciones disponibles" else "No se encontraron resultados"
+            tvEmpty.visibility = View.VISIBLE
+            recyclerView.visibility = View.GONE
+        } else {
+            tvEmpty.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
         }
     }
 }
