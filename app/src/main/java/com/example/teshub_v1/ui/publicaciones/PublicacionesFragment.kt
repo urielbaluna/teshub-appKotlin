@@ -10,15 +10,13 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.teshub_v1.R
 import com.example.teshub_v1.data.model.Publicacion
 import com.example.teshub_v1.data.network.RetrofitClient
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class PublicacionesFragment : Fragment() {
 
@@ -59,36 +57,39 @@ class PublicacionesFragment : Fragment() {
         val token = sharedPref?.getString("token", null)
 
         if (token == null) {
-            Toast.makeText(context, "Error de sesión", Toast.LENGTH_SHORT).show()
+            if (isAdded && context != null) {
+                Toast.makeText(context, "Error de sesión", Toast.LENGTH_SHORT).show()
+            }
             return
         }
 
         progressBar.visibility = View.VISIBLE
 
-        CoroutineScope(Dispatchers.IO).launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val response = RetrofitClient.publicacionesService.listarPublicaciones("Bearer $token")
 
-                withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
+                // Verificar que el fragment sigue adjunto antes de actualizar la UI
+                if (!isAdded || context == null) return@launch
 
-                    if (response.publicaciones.isNotEmpty()) {
-                        allPublicaciones = response.publicaciones
-                        adapter.updateList(allPublicaciones)
-                        tvEmpty.visibility = View.GONE
-                        recyclerView.visibility = View.VISIBLE
-                    } else {
-                        tvEmpty.visibility = View.VISIBLE
-                        recyclerView.visibility = View.GONE
-                    }
+                progressBar.visibility = View.GONE
+
+                if (response.publicaciones.isNotEmpty()) {
+                    allPublicaciones = response.publicaciones
+                    adapter.updateList(allPublicaciones)
+                    tvEmpty.visibility = View.GONE
+                    recyclerView.visibility = View.VISIBLE
+                } else {
+                    tvEmpty.visibility = View.VISIBLE
+                    recyclerView.visibility = View.GONE
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
-                    Log.e("PublicacionesFragment", "Error: ${e.message}")
-                    Toast.makeText(requireContext(), "Error al cargar: ${e.message}", Toast.LENGTH_SHORT)
-                        .show()
-                }
+                // Verificar que el fragment sigue adjunto antes de mostrar el error
+                if (!isAdded || context == null) return@launch
+
+                progressBar.visibility = View.GONE
+                Log.e("PublicacionesFragment", "Error: ${e.message}")
+                Toast.makeText(context, "Error al cargar: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }

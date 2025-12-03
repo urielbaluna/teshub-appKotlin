@@ -70,13 +70,19 @@ class EventosFragment : Fragment() {
 
         if (token == null) {
             progressBar.visibility = View.GONE
-            Toast.makeText(context, "Error de sesión. Por favor, inicia sesión de nuevo.", Toast.LENGTH_LONG).show()
+            if (isAdded && context != null) {
+                Toast.makeText(context, "Error de sesión. Por favor, inicia sesión de nuevo.", Toast.LENGTH_LONG).show()
+            }
             return
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val response = RetrofitClient.eventosService.getEventos("Bearer $token")
+                
+                // Verificar que el fragment sigue adjunto antes de actualizar la UI
+                if (!isAdded || context == null) return@launch
+                
                 progressBar.visibility = View.GONE
 
                 if (response.isSuccessful) {
@@ -94,6 +100,9 @@ class EventosFragment : Fragment() {
                     Toast.makeText(context, "Error al cargar eventos: $errorBody", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
+                // Verificar que el fragment sigue adjunto antes de mostrar el error
+                if (!isAdded || context == null) return@launch
+                
                 progressBar.visibility = View.GONE
                 Log.e("EventosFragment", "Excepción: ${e.message}")
                 Toast.makeText(context, "Excepción: ${e.message}", Toast.LENGTH_SHORT).show()

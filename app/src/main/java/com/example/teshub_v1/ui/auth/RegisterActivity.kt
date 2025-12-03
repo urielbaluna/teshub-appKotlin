@@ -1,14 +1,20 @@
 package com.example.teshub_v1.ui.auth
 
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.teshub_v1.BuildConfig
 import com.example.teshub_v1.R
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -16,22 +22,42 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.DataOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
 class RegisterActivity : AppCompatActivity() {
 
+    private var fotoPerfilUri: Uri? = null
+    private lateinit var ivFotoPerfil: ImageView
+
+    private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            fotoPerfilUri = it
+            ivFotoPerfil.setImageURI(it)
+            ivFotoPerfil.scaleType = ImageView.ScaleType.CENTER_CROP
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
-        val etNombre = findViewById<EditText>(R.id.etNombre)
-        val etApellido = findViewById<EditText>(R.id.etApellido)
-        val etCorreo = findViewById<EditText>(R.id.etCorreoRegistro)
-        val etMatricula = findViewById<EditText>(R.id.etMatricula)
-        val etPassword = findViewById<EditText>(R.id.etPasswordRegistro)
-        val btnRegistrar = findViewById<Button>(R.id.btnRegistrar)
+        ivFotoPerfil = findViewById(R.id.ivFotoPerfil)
+        val btnSeleccionarFoto = findViewById<MaterialButton>(R.id.btnSeleccionarFoto)
+        val etNombre = findViewById<TextInputEditText>(R.id.etNombre)
+        val etApellido = findViewById<TextInputEditText>(R.id.etApellido)
+        val etCorreo = findViewById<TextInputEditText>(R.id.etCorreoRegistro)
+        val etMatricula = findViewById<TextInputEditText>(R.id.etMatricula)
+        val etPassword = findViewById<TextInputEditText>(R.id.etPasswordRegistro)
+        val btnRegistrar = findViewById<MaterialButton>(R.id.btnRegistrar)
         val tvYaTengoCuenta = findViewById<TextView>(R.id.tvYaTengoCuenta)
+
+        // Botón Seleccionar Foto
+        btnSeleccionarFoto.setOnClickListener {
+            imagePickerLauncher.launch("image/*")
+        }
 
         // Botón Registrar
         btnRegistrar.setOnClickListener {
@@ -123,6 +149,30 @@ class RegisterActivity : AppCompatActivity() {
             addFormField("correo", correo)
             addFormField("matricula", matricula)
             addFormField("contrasena", password)
+
+            // Agregar foto si existe
+            fotoPerfilUri?.let { uri ->
+                try {
+                    val inputStream = contentResolver.openInputStream(uri)
+                    val file = File(cacheDir, "temp_perfil_${System.currentTimeMillis()}.jpg")
+                    val fileOutputStream = FileOutputStream(file)
+                    inputStream?.copyTo(fileOutputStream)
+                    inputStream?.close()
+                    fileOutputStream.close()
+
+                    val fileBytes = file.readBytes()
+                    outputStream.writeBytes(twoHyphens + boundary + lineEnd)
+                    outputStream.writeBytes("Content-Disposition: form-data; name=\"imagen\"; filename=\"${file.name}\"$lineEnd")
+                    outputStream.writeBytes("Content-Type: image/jpeg$lineEnd")
+                    outputStream.writeBytes(lineEnd)
+                    outputStream.write(fileBytes)
+                    outputStream.writeBytes(lineEnd)
+
+                    file.delete()
+                } catch (e: Exception) {
+                    Log.e("RegisterActivity", "Error al adjuntar foto: ${e.message}")
+                }
+            }
 
             // Cerrar multipart
             outputStream.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd)

@@ -13,6 +13,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -22,10 +23,7 @@ import com.example.teshub_v1.data.model.PublicacionInfo
 import com.example.teshub_v1.data.network.RetrofitClient
 import com.example.teshub_v1.ui.auth.MainActivity
 import com.example.teshub_v1.ui.usuarios.ActualizarUsuarioActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import retrofit2.HttpException
 
@@ -94,51 +92,61 @@ class PerfilFragment : Fragment() {
 
         loadUserPublications(token)
 
-        CoroutineScope(Dispatchers.IO).launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val perfil = RetrofitClient.usuariosService.getPerfil("Bearer $token")
-                withContext(Dispatchers.Main) {
-                    tvUserName.text = "${perfil.nombre} ${perfil.apellido}"
-                    tvUserRole.text = "Rol: ${perfil.rol}"
-                    tvUserEmail.text = perfil.correo
-                    tvUserMatricula.text = "Matrícula: ${perfil.matricula}"
-                    tvTotalPublications.text = perfil.totalPublicaciones.toString()
+                
+                // Verificar que el fragment sigue adjunto antes de actualizar la UI
+                if (!isAdded || context == null) return@launch
+                
+                tvUserName.text = "${perfil.nombre} ${perfil.apellido}"
+                tvUserRole.text = "Rol: ${perfil.rol}"
+                tvUserEmail.text = perfil.correo
+                tvUserMatricula.text = "Matrícula: ${perfil.matricula}"
+                tvTotalPublications.text = perfil.totalPublicaciones.toString()
 
-                    if (!perfil.imagen.isNullOrEmpty()) {
-                        val baseUrl = BuildConfig.API_BASE_URL
-                        val fullImageUrl = if (baseUrl.endsWith("/")) baseUrl + perfil.imagen else "$baseUrl/${perfil.imagen}"
-                        Glide.with(this@PerfilFragment)
-                            .load(fullImageUrl)
-                            .placeholder(R.drawable.ic_profile)
-                            .error(R.drawable.ic_profile)
-                            .into(ivProfileAvatar)
-                    } else {
-                        ivProfileAvatar.setImageResource(R.drawable.ic_profile)
-                    }
-
-                    if (!perfil.publicacionDestacada.isNullOrEmpty()) {
-                        tvFeaturedPublicationTitle.text = perfil.publicacionDestacada
-                        layoutFeaturedPublication.visibility = View.VISIBLE
-                    } else layoutFeaturedPublication.visibility = View.GONE
+                if (!perfil.imagen.isNullOrEmpty()) {
+                    val baseUrl = BuildConfig.API_BASE_URL
+                    val fullImageUrl = if (baseUrl.endsWith("/")) baseUrl + perfil.imagen else "$baseUrl/${perfil.imagen}"
+                    Glide.with(this@PerfilFragment)
+                        .load(fullImageUrl)
+                        .placeholder(R.drawable.ic_profile)
+                        .error(R.drawable.ic_profile)
+                        .into(ivProfileAvatar)
+                } else {
+                    ivProfileAvatar.setImageResource(R.drawable.ic_profile)
                 }
+
+                if (!perfil.publicacionDestacada.isNullOrEmpty()) {
+                    tvFeaturedPublicationTitle.text = perfil.publicacionDestacada
+                    layoutFeaturedPublication.visibility = View.VISIBLE
+                } else layoutFeaturedPublication.visibility = View.GONE
             } catch (e: HttpException) {
+                // Verificar que el fragment sigue adjunto antes de mostrar el error
+                if (!isAdded || context == null) return@launch
+                
                 val errorBody = e.response()?.errorBody()?.string()
                 val errorMessage = try { JSONObject(errorBody).optString("mensaje", "Error al cargar perfil.") } catch (_: Exception) { "Error de servidor: ${e.code()}" }
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                    if (e.code() == 401) logout()
-                }
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                if (e.code() == 401) logout()
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show() }
+                // Verificar que el fragment sigue adjunto antes de mostrar el error
+                if (!isAdded || context == null) return@launch
+                
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
 
     private fun loadUserPublications(token: String) {
-        CoroutineScope(Dispatchers.IO).launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val response = RetrofitClient.publicacionesService.obtenerSoloPublicaciones("Bearer $token")
-                withContext(Dispatchers.Main) { adapterPerfil.updateList(response.publicaciones) }
+                
+                // Verificar que el fragment sigue adjunto antes de actualizar la UI
+                if (!isAdded || context == null) return@launch
+                
+                adapterPerfil.updateList(response.publicaciones)
             } catch (e: Exception) {
                 Log.e("PERFIL", "Error obteniendo publicaciones: ${e.message}")
             }
@@ -158,24 +166,26 @@ class PerfilFragment : Fragment() {
         val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
         val token = sharedPref?.getString("token", null) ?: return
 
-        CoroutineScope(Dispatchers.IO).launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val response = RetrofitClient.publicacionesService
                     .eliminarPublicacion(publicacion.id_publi, "Bearer $token")
 
-                withContext(Dispatchers.Main) {
-                    if (response.isSuccessful) {
-                        adapterPerfil.removeItem(publicacion)
-                        Toast.makeText(context, "Publicación eliminada", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Error al eliminar publicación", Toast.LENGTH_SHORT).show()
-                    }
+                // Verificar que el fragment sigue adjunto antes de actualizar la UI
+                if (!isAdded || context == null) return@launch
+                
+                if (response.isSuccessful) {
+                    adapterPerfil.removeItem(publicacion)
+                    Toast.makeText(context, "Publicación eliminada", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Error al eliminar publicación", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
-                    Log.e("PERFIL", e.stackTraceToString())
-                }
+                // Verificar que el fragment sigue adjunto antes de mostrar el error
+                if (!isAdded || context == null) return@launch
+                
+                Toast.makeText(context, "Error de conexión: ${e.message}", Toast.LENGTH_LONG).show()
+                Log.e("PERFIL", e.stackTraceToString())
             }
         }
     }

@@ -41,9 +41,21 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
     private val editarEventoLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // Esto ya no es suficiente, la actividad debe recargarse con datos nuevos
-            finish() // Cierra la actividad actual
-            startActivity(intent) // Y la vuelve a abrir para recargar todo
+            // Obtener el evento actualizado del Intent
+            val eventoActualizado = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                result.data?.getParcelableExtra("EVENTO_ACTUALIZADO", Evento::class.java)
+            } else {
+                @Suppress("DEPRECATION") result.data?.getParcelableExtra("EVENTO_ACTUALIZADO")
+            }
+            
+            if (eventoActualizado != null) {
+                evento = eventoActualizado
+                actualizarVista()
+                Toast.makeText(this, "Evento actualizado", Toast.LENGTH_SHORT).show()
+            } else {
+                // Fallback: recargar desde el servidor si no se recibió el evento
+                recargarEvento()
+            }
         }
     }
 
@@ -238,6 +250,62 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
                 Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    private fun recargarEvento() {
+        val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        val token = sharedPref.getString("token", null) ?: return
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.eventosService.getEvento(evento.id, "Bearer $token")
+                if (response.isSuccessful && response.body() != null) {
+                    evento = response.body()!!
+                    actualizarVista()
+                    Toast.makeText(this@EventoDetalleActivity, "Evento actualizado", Toast.LENGTH_SHORT).show()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e("EventoDetalleActivity", "Error al recargar: $errorBody")
+                    Toast.makeText(this@EventoDetalleActivity, "Error al recargar el evento", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("EventoDetalleActivity", "Excepción al recargar: ${e.message}")
+                Toast.makeText(this@EventoDetalleActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun actualizarVista() {
+        val ivFoto: ImageView = findViewById(R.id.ivFotoEvento)
+        val tvTitulo: TextView = findViewById(R.id.tvTituloDetalle)
+        val tvOrganizadores: TextView = findViewById(R.id.tvOrganizadoresDetalle)
+        val tvFecha: TextView = findViewById(R.id.tvFechaDetalle)
+        val tvDescripcion: TextView = findViewById(R.id.tvDescripcionDetalle)
+
+        tvTitulo.text = evento.titulo
+        tvOrganizadores.text = evento.organizadoresTexto()
+        tvFecha.text = formatIsoDate(evento.fecha)
+        tvDescripcion.text = evento.descripcion
+
+        evento.urlFoto?.let {
+            val fullImageUrl = if (it.startsWith("http")) it else "${BuildConfig.API_BASE_URL}/$it"
+            Glide.with(this)
+                .load(fullImageUrl)
+                .centerCrop()
+                .placeholder(android.R.color.darker_gray)
+                .into(ivFoto)
+        } ?: run {
+            ivFoto.setImageResource(android.R.color.darker_gray)
+        }
+
+        // Actualizar el mapa
+        val ubicacion = LatLng(evento.ubicacion.latitud, evento.ubicacion.longitud)
+        mMap.clear()
+        mMap.addMarker(MarkerOptions().position(ubicacion).title(evento.titulo))
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(ubicacion, 18f))
+
+        // Actualizar la información de asistencia
+        configurarAsistencia()
     }
 
     override fun onMapReady(googleMap: GoogleMap) {

@@ -15,6 +15,12 @@ interface EventosService {
     @GET("api/eventos")
     suspend fun getEventos(@Header("Authorization") token: String): Response<EventosResponse>
 
+    @GET("api/eventos/{id}")
+    suspend fun getEvento(
+        @Path("id") id: Int,
+        @Header("Authorization") token: String
+    ): Response<Evento>
+
     @Multipart
     @POST("api/eventos")
     suspend fun crearEvento(

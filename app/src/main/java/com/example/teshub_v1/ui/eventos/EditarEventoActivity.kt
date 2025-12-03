@@ -176,7 +176,24 @@ class EditarEventoActivity : AppCompatActivity() {
 
                 if (response.isSuccessful) {
                     Toast.makeText(this@EditarEventoActivity, response.body()?.mensaje ?: "Evento actualizado con éxito", Toast.LENGTH_LONG).show()
-                    setResult(Activity.RESULT_OK)
+                    
+                    // Crear el evento actualizado con los nuevos valores
+                    val eventoActualizado = eventoActual.copy(
+                        titulo = etTitulo.text.toString(),
+                        descripcion = etDescripcion.text.toString(),
+                        fecha = fechaISO,
+                        ubicacion = eventoActual.ubicacion.copy(
+                            latitud = latitudSeleccionada!!,
+                            longitud = longitudSeleccionada!!
+                        ),
+                        cupoMaximo = etCupoMaximo.text.toString().toIntOrNull() ?: eventoActual.cupoMaximo
+                        // organizadores, urlFoto, asistentesRegistrados y usuarioRegistrado se mantienen igual
+                    )
+                    
+                    // Devolver el evento actualizado
+                    val intentResult = Intent()
+                    intentResult.putExtra("EVENTO_ACTUALIZADO", eventoActualizado)
+                    setResult(Activity.RESULT_OK, intentResult)
                     finish()
                 } else {
                     val errorBody = response.errorBody()?.string()
