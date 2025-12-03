@@ -1,4 +1,4 @@
-package com.example.teshub_v1.ui.publicaciones
+package com.example.teshub_v1.fragments
 
 import android.content.Context
 import android.os.Bundle
@@ -13,13 +13,12 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.teshub_v1.R
-import com.example.teshub_v1.data.model.Publicacion
-import com.example.teshub_v1.data.network.RetrofitClient
+import com.example.teshub_v1.adapter.PublicacionesAdapter
+import com.example.teshub_v1.network.RetrofitClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
 
 class PublicacionesFragment : Fragment() {
 
@@ -34,14 +33,20 @@ class PublicacionesFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_publicaciones, container, false)
 
+        // Inicializar Vistas
         recyclerView = view.findViewById(R.id.rv_publicaciones)
         progressBar = view.findViewById(R.id.progress_bar)
         tvEmpty = view.findViewById(R.id.tv_empty_view)
 
+        // Configurar RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(context)
-        adapter = PublicacionesAdapter(emptyList())
+        adapter = PublicacionesAdapter(emptyList()) { publicacion ->
+            // Aquí manejarás el click para ver detalles (próximamente)
+            Toast.makeText(context, "Click en: ${publicacion.nombre}", Toast.LENGTH_SHORT).show()
+        }
         recyclerView.adapter = adapter
 
+        // Cargar Datos
         cargarPublicaciones()
 
         return view
@@ -78,7 +83,7 @@ class PublicacionesFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
                     Log.e("PublicacionesFragment", "Error: ${e.message}")
-                    Toast.makeText(context, "Error al cargar: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Error al cargar: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
