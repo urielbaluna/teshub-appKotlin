@@ -26,6 +26,8 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -81,7 +83,106 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
+        configurarAsistencia()
         verificarPermisosDeUsuario()
+    }
+
+    private fun configurarAsistencia() {
+        val tvInfoAsistencia: TextView = findViewById(R.id.tvInfoAsistencia)
+        val btnRegistrarse: MaterialButton = findViewById(R.id.btnRegistrarse)
+        val btnCancelarRegistro: MaterialButton = findViewById(R.id.btnCancelarRegistro)
+        val tvEventoLleno: TextView = findViewById(R.id.tvEventoLleno)
+
+        // Mostrar información de asistencia
+        tvInfoAsistencia.text = if (evento.hayLugaresDisponibles) {
+            "Lugares disponibles: ${evento.cupoDisponible} de ${evento.cupoMaximo}"
+        } else {
+            "Asistentes: ${evento.asistentesRegistrados}/${evento.cupoMaximo}"
+        }
+
+        // Mostrar botón apropiado
+        when {
+            evento.usuarioRegistrado -> {
+                // Usuario ya registrado: mostrar botón cancelar
+                btnCancelarRegistro.visibility = View.VISIBLE
+                btnCancelarRegistro.setOnClickListener { mostrarDialogoCancelarRegistro() }
+            }
+            evento.hayLugaresDisponibles -> {
+                // Hay cupo disponible: mostrar botón registrarse
+                btnRegistrarse.visibility = View.VISIBLE
+                btnRegistrarse.setOnClickListener { mostrarDialogoRegistrarse() }
+            }
+            else -> {
+                // Evento lleno
+                tvEventoLleno.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun mostrarDialogoRegistrarse() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Confirmar asistencia")
+            .setMessage("¿Deseas registrarte a este evento?\n\n${evento.titulo}")
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Registrarme") { _, _ ->
+                registrarseAlEvento()
+            }
+            .show()
+    }
+
+    private fun registrarseAlEvento() {
+        val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        val token = sharedPref.getString("token", null) ?: return
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.eventosService.registrarseEvento(evento.id, "Bearer $token")
+                if (response.isSuccessful) {
+                    Toast.makeText(this@EventoDetalleActivity, "¡Te has registrado con éxito!", Toast.LENGTH_SHORT).show()
+                    // Recargar la actividad para actualizar la UI
+                    finish()
+                    startActivity(intent)
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun mostrarDialogoCancelarRegistro() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Cancelar registro")
+            .setMessage("¿Estás seguro de que quieres cancelar tu registro a este evento?")
+            .setNegativeButton("No", null)
+            .setPositiveButton("Sí, cancelar") { _, _ ->
+                cancelarRegistro()
+            }
+            .show()
+    }
+
+    private fun cancelarRegistro() {
+        val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        val token = sharedPref.getString("token", null) ?: return
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.eventosService.cancelarRegistroEvento(evento.id, "Bearer $token")
+                if (response.isSuccessful) {
+                    Toast.makeText(this@EventoDetalleActivity, "Registro cancelado", Toast.LENGTH_SHORT).show()
+                    // Recargar la actividad para actualizar la UI
+                    finish()
+                    startActivity(intent)
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun verificarPermisosDeUsuario() {

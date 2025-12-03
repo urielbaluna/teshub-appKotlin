@@ -14,7 +14,10 @@ data class Evento(
     @Json(name = "descripcion") val descripcion: String,
     @Json(name = "urlFoto") val urlFoto: String?,
     @Json(name = "ubicacion") val ubicacion: Ubicacion,
-    @Json(name = "organizadores") val organizadores: List<Organizador>
+    @Json(name = "organizadores") val organizadores: List<Organizador>,
+    @Json(name = "cupoMaximo") val cupoMaximo: Int = 50,
+    @Json(name = "asistentesRegistrados") val asistentesRegistrados: Int = 0,
+    @Json(name = "usuarioRegistrado") val usuarioRegistrado: Boolean = false
 ) : Parcelable {
     /**
      * Función helper para mostrar los nombres completos de los organizadores
@@ -22,6 +25,25 @@ data class Evento(
      */
     fun organizadoresTexto(): String {
         return organizadores.joinToString(separator = ", ") { "${it.nombre} ${it.apellido}" }
+    }
+
+    /**
+     * Calcula los lugares disponibles
+     */
+    val cupoDisponible: Int
+        get() = cupoMaximo - asistentesRegistrados
+
+    /**
+     * Verifica si hay lugares disponibles
+     */
+    val hayLugaresDisponibles: Boolean
+        get() = cupoDisponible > 0
+
+    /**
+     * Retorna un texto formateado para mostrar la asistencia
+     */
+    fun textoAsistencia(): String {
+        return "$asistentesRegistrados/$cupoMaximo asistentes"
     }
 }
 

@@ -262,6 +262,106 @@
 
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Card: Asistencia -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardAsistencia"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:cardUseCompatPadding="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_menu_manage"
+                        android:tint="#9C27B0"
+                        android:layout_marginEnd="16dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Asistencia"
+                        android:textSize="12sp"
+                        android:textColor="#757575"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvInfoAsistencia"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="15sp"
+                    android:textColor="#212121"
+                    android:layout_marginBottom="12dp"
+                    tools:text="Lugares disponibles: 55 de 100" />
+
+                <!-- Botón Registrarse -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRegistrarse"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Registrarme al evento"
+                    android:textSize="15sp"
+                    app:icon="@android:drawable/ic_input_add"
+                    app:iconGravity="textStart"
+                    app:cornerRadius="12dp"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+                <!-- Botón Cancelar Registro -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCancelarRegistro"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Cancelar mi registro"
+                    android:textSize="15sp"
+                    android:textColor="#C62828"
+                    app:icon="@android:drawable/ic_delete"
+                    app:iconTint="#C62828"
+                    app:iconGravity="textStart"
+                    app:strokeColor="#C62828"
+                    app:cornerRadius="12dp"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+                <!-- Mensaje de evento lleno -->
+                <TextView
+                    android:id="@+id/tvEventoLleno"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="⚠️ EVENTO LLENO"
+                    android:textSize="15sp"
+                    android:textColor="#C62828"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:padding="12dp"
+                    android:background="#FFEBEE"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Botones de Administración -->
         <LinearLayout
             android:id="@+id/layoutBotonesAdmin"

@@ -39,10 +39,12 @@ class EventosAdapter(
         private val tvDescripcion: TextView = itemView.findViewById(R.id.tvDescripcionEvento)
         private val tvFecha: TextView = itemView.findViewById(R.id.tvFechaEvento)
         private val tvHora: TextView = itemView.findViewById(R.id.tvHoraEvento)
+        private val tvAsistentes: TextView = itemView.findViewById(R.id.tvAsistentesEvento)
 
         fun bind(evento: Evento) {
             tvTitulo.text = evento.titulo
             tvDescripcion.text = evento.descripcion
+            tvAsistentes.text = evento.textoAsistencia()
             
             val (fecha, hora) = formatIsoDateSeparated(evento.fecha)
             tvFecha.text = fecha

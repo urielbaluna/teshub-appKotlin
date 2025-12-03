@@ -31,6 +31,7 @@ class EditarEventoActivity : AppCompatActivity() {
     private lateinit var etTitulo: TextInputEditText
     private lateinit var etOrganizadores: TextInputEditText
     private lateinit var etDescripcion: TextInputEditText
+    private lateinit var etCupoMaximo: TextInputEditText
     private lateinit var etFecha: TextInputEditText
     private lateinit var btnSeleccionarUbicacion: Button
     private lateinit var tvCoordenadas: TextView
@@ -73,6 +74,7 @@ class EditarEventoActivity : AppCompatActivity() {
         etTitulo = findViewById(R.id.etTituloEvento)
         etOrganizadores = findViewById(R.id.etOrganizadoresEvento)
         etDescripcion = findViewById(R.id.etDescripcionEvento)
+        etCupoMaximo = findViewById(R.id.etCupoMaximo)
         etFecha = findViewById(R.id.etFechaEvento)
         btnSeleccionarUbicacion = findViewById(R.id.btnSeleccionarUbicacion)
         tvCoordenadas = findViewById(R.id.tvCoordenadasSeleccionadas)
@@ -83,6 +85,7 @@ class EditarEventoActivity : AppCompatActivity() {
         etTitulo.setText(eventoActual.titulo)
         etDescripcion.setText(eventoActual.descripcion)
         etOrganizadores.setText(eventoActual.organizadores.joinToString(", ") { it.matricula })
+        etCupoMaximo.setText(eventoActual.cupoMaximo.toString())
 
         latitudSeleccionada = eventoActual.ubicacion.latitud
         longitudSeleccionada = eventoActual.ubicacion.longitud
@@ -161,7 +164,8 @@ class EditarEventoActivity : AppCompatActivity() {
                     fecha = fechaISO,
                     latitud = latitudSeleccionada!!,
                     longitud = longitudSeleccionada!!,
-                    organizadores = etOrganizadores.text.toString()
+                    organizadores = etOrganizadores.text.toString(),
+                    cupo_maximo = etCupoMaximo.text.toString().toIntOrNull()
                 )
 
                 val response = RetrofitClient.eventosService.actualizarEvento(
