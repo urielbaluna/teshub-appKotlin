@@ -9,7 +9,8 @@ data class PerfilResponse(
     val correo: String,
     val rol: String,
     val imagen: String?,
-    // Mapeo de campos con guion bajo
+
     @Json(name = "total_publicaciones") val totalPublicaciones: Int,
     @Json(name = "publicacion_destacada") val publicacionDestacada: String?
 )
+

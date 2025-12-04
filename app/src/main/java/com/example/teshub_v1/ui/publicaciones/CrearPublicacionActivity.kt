@@ -52,7 +52,6 @@ class CrearPublicacionActivity : AppCompatActivity() {
                 Toast.makeText(this, "Título y descripción son obligatorios", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            enviarPublicacion(titulo, descripcion, colaboradores)
         }
     }
 

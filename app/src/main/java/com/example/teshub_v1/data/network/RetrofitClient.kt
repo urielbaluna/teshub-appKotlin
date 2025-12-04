@@ -10,14 +10,11 @@ object RetrofitClient {
 
     private const val BASE_URL = BuildConfig.API_BASE_URL
 
-    private val moshi = Moshi.Builder()
-        .addLast(KotlinJsonAdapterFactory())
-        .build()
+            .build()
 
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .addConverterFactory(MoshiConverterFactory.create(moshi))
-        .build()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
 
     val usuariosService: UsuariosService by lazy {
         retrofit.create(UsuariosService::class.java)

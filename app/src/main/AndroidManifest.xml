@@ -24,7 +24,7 @@
             android:value="AIzaSyCJeDKp2dLQMoO-Otx9hYMLDtQEzsB7y6s" />
 
         <activity
-            android:name=".ui.auth.MainActivity"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -32,15 +32,25 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.auth.RegisterActivity" />
-        <activity android:name="com.example.teshub_v1.ui.auth.ForgotpasswordActivity" />
-        <activity android:name=".ui.auth.ResetpasswordActivity" />
+        <activity
+            android:name=".HomeContainerActivity"
+            android:exported="false" />
 
-        <activity android:name=".ui.home.HomeContainerActivity"/>
+        <activity
+            android:name=".CrearPublicacionActivity"
+            android:exported="false" />
 
-        <activity android:name=".ui.usuarios.ActualizarUsuarioActivity" />
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="false" />
 
-        <activity android:name=".ui.publicaciones.CrearPublicacionActivity" />
+        <activity
+            android:name=".ForgotpasswordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ResetpasswordActivity"
+            android:exported="false" />
 
         <!-- Actividades del módulo de Eventos -->
         <activity android:name=".ui.eventos.EventoDetalleActivity" />
