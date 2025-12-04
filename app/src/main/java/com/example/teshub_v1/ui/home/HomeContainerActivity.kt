@@ -2,6 +2,8 @@ package com.example.teshub_v1.ui.home
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
@@ -12,8 +14,10 @@ import com.example.teshub_v1.ui.usuarios.PerfilFragment
 import com.example.teshub_v1.ui.publicaciones.PublicacionesFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-
+import com.example.teshub_v1.ui.eventos.EventosFragment
 class HomeContainerActivity : AppCompatActivity() {
+
+    private var currentFragment: Fragment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,6 +40,19 @@ class HomeContainerActivity : AppCompatActivity() {
         searchBar.visibility = View.VISIBLE
         fab.visibility = View.VISIBLE
 
+        searchBar.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+                if (fragment is PublicacionesFragment) {
+                    fragment.filter(s.toString())
+                }
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
         //Implementar la lógica de visibilidad basada en la selección
         bottomNavigationView.setOnItemSelectedListener { item ->
             when (item.itemId) {
@@ -44,6 +61,13 @@ class HomeContainerActivity : AppCompatActivity() {
                     searchBar.visibility = View.VISIBLE
                     fab.visibility = View.VISIBLE
                     loadFragment(PublicacionesFragment())
+                    true
+                }
+                R.id.nav_eventos -> {
+                    // En la vista de Eventos, OCULTAR buscador y mostrar botón de agregar
+                    searchBar.visibility = View.GONE
+                    fab.visibility = View.GONE  // O View.VISIBLE si quieres el botón de crear evento
+                    loadFragment(EventosFragment())
                     true
                 }
                 R.id.nav_profile -> {
@@ -63,6 +87,7 @@ class HomeContainerActivity : AppCompatActivity() {
     }
 
     private fun loadFragment(fragment: Fragment) {
+        currentFragment = fragment
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .commit()

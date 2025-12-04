@@ -4,6 +4,8 @@
     package="com.example.teshub_v1">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Permiso para acceder a imágenes en la galería (Android 13+) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
         android:allowBackup="true"
@@ -15,6 +17,11 @@
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"
         tools:targetApi="31">
+
+        <!-- Clave de API para Google Maps -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyCJeDKp2dLQMoO-Otx9hYMLDtQEzsB7y6s" />
 
         <activity
             android:name=".MainActivity"
@@ -44,6 +51,12 @@
         <activity
             android:name=".ResetpasswordActivity"
             android:exported="false" />
+
+        <!-- Actividades del módulo de Eventos -->
+        <activity android:name=".ui.eventos.EventoDetalleActivity" />
+        <activity android:name=".ui.eventos.CrearEventoActivity" />
+        <activity android:name=".ui.eventos.SeleccionarUbicacionActivity" />
+        <activity android:name=".ui.eventos.EditarEventoActivity" />
 
     </application>
 

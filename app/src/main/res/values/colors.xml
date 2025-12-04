@@ -7,4 +7,8 @@
         <color name="accentYellow">#FFC107</color>
     <color name="teal_700">#018786</color>
     <color name="darker_gray">#A9A9A9</color>
-    </resources>
+
+    <!-- Colores personalizados de la App -->
+    <color name="verde_teshub">#4CAF50</color>
+
+</resources>

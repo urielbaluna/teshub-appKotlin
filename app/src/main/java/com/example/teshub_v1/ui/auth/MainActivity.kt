@@ -49,7 +49,6 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // Deshabilitar botón para evitar doble click
             btnLogin.isEnabled = false
             CoroutineScope(Dispatchers.IO).launch {
                 loginUsuario(usuario, password, btnLogin)
@@ -68,16 +67,15 @@ class MainActivity : AppCompatActivity() {
     private suspend fun loginUsuario(usuario: String, password: String, btnLogin: Button) {
         try {
             val loginRequest = mapOf("correo" to usuario, "contrasena" to password)
-
-            // Llamada al servicio
             val response = RetrofitClient.usuariosService.login(loginRequest)
 
             withContext(Dispatchers.Main) {
                 btnLogin.isEnabled = true
 
-                // Guardar sesión
+                // --- CORRECCIÓN: Guardar también la matrícula ---
                 getSharedPreferences("sesion", MODE_PRIVATE).edit()
                     .putString("token", response.token)
+                    .putString("matricula", response.matricula) // <-- LÍNEA AÑADIDA
                     .apply()
 
                 Toast.makeText(this@MainActivity, "Bienvenido ${response.nombre}", Toast.LENGTH_SHORT).show()
@@ -109,7 +107,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun irAlHome() {
         val intent = Intent(this, HomeContainerActivity::class.java)
-        // Pasar datos extras si los necesitas, aunque PerfilFragment los carga de la API
         startActivity(intent)
         finish()
     }
