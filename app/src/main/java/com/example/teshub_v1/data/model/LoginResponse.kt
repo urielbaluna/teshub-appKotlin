@@ -8,3 +8,4 @@ data class LoginResponse(
     val correo: String,
     val rol: String
 )
+

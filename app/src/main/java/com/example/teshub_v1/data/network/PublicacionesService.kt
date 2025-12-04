@@ -27,7 +27,6 @@ interface PublicacionesService {
         @Part("titulo") titulo: RequestBody,
         @Part("descripcion") descripcion: RequestBody,
         @Part("colaboradores") colaboradores: RequestBody,
-        @Part archivos: List<MultipartBody.Part>? = null
     ): CrearPublicacionResponse
     @POST("api/usuarios/ver-info-publicaciones")
     suspend fun obtenerSoloPublicaciones(
