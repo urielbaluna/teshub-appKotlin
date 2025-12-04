@@ -107,6 +107,38 @@
 
             </LinearLayout>
 
+            <!-- Asistentes -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:background="#E8F5E9"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:layout_marginEnd="8dp">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@android:drawable/ic_menu_manage"
+                    android:tint="#2E7D32"
+                    android:layout_marginEnd="4dp" />
+
+                <TextView
+                    android:id="@+id/tvAsistentesEvento"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textColor="#2E7D32"
+                    android:textStyle="bold"
+                    tools:text="45/100 asistentes" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
     </LinearLayout>

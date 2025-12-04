@@ -36,6 +36,7 @@ class CrearEventoActivity : AppCompatActivity() {
     private lateinit var etTitulo: TextInputEditText
     private lateinit var etOrganizadores: TextInputEditText
     private lateinit var etDescripcion: TextInputEditText
+    private lateinit var etCupoMaximo: TextInputEditText
     private lateinit var etFecha: TextInputEditText
     private lateinit var btnSeleccionarFoto: Button
     private lateinit var tvNombreFoto: TextView
@@ -77,6 +78,7 @@ class CrearEventoActivity : AppCompatActivity() {
         etTitulo = findViewById(R.id.etTituloEvento)
         etOrganizadores = findViewById(R.id.etOrganizadoresEvento)
         etDescripcion = findViewById(R.id.etDescripcionEvento)
+        etCupoMaximo = findViewById(R.id.etCupoMaximo)
         etFecha = findViewById(R.id.etFechaEvento)
         btnSeleccionarFoto = findViewById(R.id.btnSeleccionarFotoEvento)
         tvNombreFoto = findViewById(R.id.tvNombreFoto)
@@ -159,6 +161,7 @@ class CrearEventoActivity : AppCompatActivity() {
                 val tituloPart = etTitulo.text.toString().toRequestBody("text/plain".toMediaTypeOrNull())
                 val organizadoresPart = etOrganizadores.text.toString().toRequestBody("text/plain".toMediaTypeOrNull())
                 val descripcionPart = etDescripcion.text.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+                val cupoMaximoPart = (etCupoMaximo.text.toString().toIntOrNull() ?: 50).toString().toRequestBody("text/plain".toMediaTypeOrNull())
                 val fechaPart = fechaISO.toRequestBody("text/plain".toMediaTypeOrNull())
                 val latitudPart = latitudSeleccionada.toString().toRequestBody("text/plain".toMediaTypeOrNull())
                 val longitudPart = longitudSeleccionada.toString().toRequestBody("text/plain".toMediaTypeOrNull())
@@ -178,6 +181,7 @@ class CrearEventoActivity : AppCompatActivity() {
                     fecha = fechaPart,
                     latitud = latitudPart,
                     longitud = longitudPart,
+                    cupoMaximo = cupoMaximoPart,
                     foto = fotoPart
                 )
 

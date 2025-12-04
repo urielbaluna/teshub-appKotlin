@@ -4,6 +4,7 @@ import com.example.teshub_v1.data.model.CrearEventoResponse
 import com.example.teshub_v1.data.model.EditarEventoRequest
 import com.example.teshub_v1.data.model.Evento
 import com.example.teshub_v1.data.model.EventosResponse
+import com.example.teshub_v1.data.model.RegistroEventoResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -13,6 +14,12 @@ interface EventosService {
 
     @GET("api/eventos")
     suspend fun getEventos(@Header("Authorization") token: String): Response<EventosResponse>
+
+    @GET("api/eventos/{id}")
+    suspend fun getEvento(
+        @Path("id") id: Int,
+        @Header("Authorization") token: String
+    ): Response<Evento>
 
     @Multipart
     @POST("api/eventos")
@@ -25,6 +32,7 @@ interface EventosService {
         @Part("longitud") longitud: RequestBody,
         // --- CORRECCIÓN: Usar el nombre de campo correcto ---
         @Part("organizadores_matriculas") organizadores: RequestBody,
+        @Part("cupo_maximo") cupoMaximo: RequestBody,
         @Part foto: MultipartBody.Part?
     ): Response<CrearEventoResponse>
 
@@ -39,5 +47,17 @@ interface EventosService {
         @Path("id") id: Int,
         @Header("Authorization") token: String,
         @Body evento: EditarEventoRequest
+    ): Response<CrearEventoResponse>
+
+    @POST("api/eventos/{id}/registrarse")
+    suspend fun registrarseEvento(
+        @Path("id") id: Int,
+        @Header("Authorization") token: String
+    ): Response<RegistroEventoResponse>
+
+    @DELETE("api/eventos/{id}/cancelar-registro")
+    suspend fun cancelarRegistroEvento(
+        @Path("id") id: Int,
+        @Header("Authorization") token: String
     ): Response<CrearEventoResponse>
 }

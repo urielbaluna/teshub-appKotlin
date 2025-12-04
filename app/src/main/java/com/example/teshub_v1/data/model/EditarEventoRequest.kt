@@ -7,5 +7,6 @@ data class EditarEventoRequest(
     val fecha: String,
     val latitud: Double,
     val longitud: Double,
-    val organizadores: String // String de matrículas separadas por coma
+    val organizadores: String, // String de matrículas separadas por coma
+    val cupo_maximo: Int? = null
 )
