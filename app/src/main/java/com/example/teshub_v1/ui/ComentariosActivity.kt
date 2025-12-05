@@ -1,4 +1,4 @@
-package com.example.teshub_v1.ui.comentarios
+package com.example.teshub_v1.ui
 
 import android.os.Bundle
 import android.widget.Button
@@ -15,6 +15,7 @@ import com.example.teshub_v1.data.network.RetrofitClient
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.teshub_v1.data.model.ComentarioRequest
 
 class ComentariosActivity : AppCompatActivity() {
 
@@ -57,9 +58,12 @@ class ComentariosActivity : AppCompatActivity() {
             val token = obtenerToken()
             lifecycleScope.launch {
                 try {
+                    val request = ComentarioRequest(
+                        id_publi = idPublicacion,
+                        comentario = texto
+                    )
                     val respuesta: CrearComentarioResponse =
-                        RetrofitClient.publicacionesService.comentarPublicacion(token, idPublicacion, texto)
-
+                        RetrofitClient.publicacionesService.comentarPublicacion(token, request)
                     Toast.makeText(this@ComentariosActivity, respuesta.mensaje, Toast.LENGTH_SHORT).show()
                     etComentario.text.clear()
                     cargarComentarios()
@@ -93,8 +97,9 @@ class ComentariosActivity : AppCompatActivity() {
     }
 
     private fun obtenerToken(): String {
-        val sharedPref = getSharedPreferences("auth", MODE_PRIVATE)
-        return "Bearer " + (sharedPref.getString("token", "") ?: "")
+        val sharedPref = getSharedPreferences("sesion", MODE_PRIVATE)
+        val token = sharedPref.getString("token", "") ?: ""
+        return "Bearer $token"
     }
 
     private fun formatearFecha(fechaIso: String?): String {

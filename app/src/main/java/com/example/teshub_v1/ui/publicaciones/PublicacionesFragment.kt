@@ -1,6 +1,7 @@
-package com.example.teshub_v1.fragments
+package com.example.teshub_v1.ui.publicaciones
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -14,10 +15,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.teshub_v1.R
-import com.example.teshub_v1.adapter.PublicacionesAdapter
-import com.example.teshub_v1.network.RetrofitClient
 import com.example.teshub_v1.data.model.Publicacion
 import com.example.teshub_v1.data.network.RetrofitClient
+import com.example.teshub_v1.ui.ComentariosActivity
 import kotlinx.coroutines.launch
 
 class PublicacionesFragment : Fragment() {
@@ -35,20 +35,25 @@ class PublicacionesFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_publicaciones, container, false)
 
-        // Inicializar Vistas
         recyclerView = view.findViewById(R.id.rv_publicaciones)
         progressBar = view.findViewById(R.id.progress_bar)
         tvEmpty = view.findViewById(R.id.tv_empty_view)
 
-        // Configurar RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(context)
-        adapter = PublicacionesAdapter(emptyList()) { publicacion ->
-            // Aquí manejarás el click para ver detalles (próximamente)
-            Toast.makeText(context, "Click en: ${publicacion.nombre}", Toast.LENGTH_SHORT).show()
-        }
+
+        adapter = PublicacionesAdapter(
+            emptyList(),
+            onClick = { publicacion ->
+                Toast.makeText(context, "Publicación: ${publicacion.nombre}", Toast.LENGTH_SHORT).show()
+            },
+            onComentariosClick = { publicacion ->
+                val intent = Intent(context, ComentariosActivity::class.java)
+                intent.putExtra("idPublicacion", publicacion.id) // Pasamos el ID
+                startActivity(intent)
+            }
+        )
         recyclerView.adapter = adapter
 
-        // Cargar Datos
         cargarPublicaciones()
 
         return view
@@ -71,7 +76,6 @@ class PublicacionesFragment : Fragment() {
             try {
                 val response = RetrofitClient.publicacionesService.listarPublicaciones("Bearer $token")
 
-                // Verificar que el fragment sigue adjunto antes de actualizar la UI
                 if (!isAdded || context == null) return@launch
 
                 progressBar.visibility = View.GONE
@@ -86,7 +90,6 @@ class PublicacionesFragment : Fragment() {
                     recyclerView.visibility = View.GONE
                 }
             } catch (e: Exception) {
-                // Verificar que el fragment sigue adjunto antes de mostrar el error
                 if (!isAdded || context == null) return@launch
 
                 progressBar.visibility = View.GONE
@@ -102,7 +105,8 @@ class PublicacionesFragment : Fragment() {
         } else {
             val lowerCaseQuery = query.lowercase()
             allPublicaciones.filter {
-                it.nombre.lowercase().contains(lowerCaseQuery) || it.descripcion.lowercase().contains(lowerCaseQuery)
+                it.nombre.lowercase().contains(lowerCaseQuery) ||
+                        it.descripcion.lowercase().contains(lowerCaseQuery)
             }
         }
         adapter.updateList(filteredList)

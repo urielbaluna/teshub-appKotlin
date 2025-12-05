@@ -1,4 +1,4 @@
-package com.example.teshub_v1.ui.comentarios
+package com.example.teshub_v1.ui
 
 import android.view.LayoutInflater
 import android.view.View
@@ -12,9 +12,9 @@ class ComentariosAdapter(
     private val comentarios: List<Comentario>
 ) : RecyclerView.Adapter<ComentariosAdapter.ViewHolder>() {
 
-    inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val nombre: TextView = itemView.findViewById(R.id.tvNombreUsuario)
-        val texto: TextView = itemView.findViewById(R.id.tvTextoComentario)
+    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val tvNombre: TextView = view.findViewById(R.id.tvNombreUsuario)
+        val tvComentario: TextView = view.findViewById(R.id.tvTextoComentario)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -24,10 +24,11 @@ class ComentariosAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val comentario = comentarios[position]
-        holder.nombre.text = comentario.nombre
-        holder.texto.text = comentario.comentario
+        val item = comentarios[position]
+
+        holder.tvNombre.text = "${item.nombre}"
+        holder.tvComentario.text = item.comentario
     }
 
-    override fun getItemCount(): Int = comentarios.size
+    override fun getItemCount() = comentarios.size
 }
