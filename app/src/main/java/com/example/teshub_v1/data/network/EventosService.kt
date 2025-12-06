@@ -60,4 +60,16 @@ interface EventosService {
         @Path("id") id: Int,
         @Header("Authorization") token: String
     ): Response<CrearEventoResponse>
+    @GET("api/buscar/eventos")
+    suspend fun buscarEventos(
+        @Header("Authorization") token: String,
+        @Query("palabra") palabra: String?,
+        @Query("lat") latitud: Double?,
+        @Query("lng") longitud: Double?,
+        @Query("radioKm") radioKm: Int?,
+        @Query("fecha_inicio") fechaInicio: String?,
+        @Query("fecha_fin") fechaFin: String?
+    ): Response<EventosResponse>
+
+
 }

@@ -15,7 +15,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 class EventosAdapter(
-    private val eventos: List<Evento>,
+    private var eventos: List<Evento>,
     private val onItemClick: (Evento) -> Unit
 ) : RecyclerView.Adapter<EventosAdapter.EventoViewHolder>() {
 
@@ -33,6 +33,11 @@ class EventosAdapter(
 
     override fun getItemCount(): Int = eventos.size
 
+    fun updateList(newList: List<Evento>) {
+        eventos = newList
+        notifyDataSetChanged()
+    }
+
     class EventoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val ivImagen: ImageView = itemView.findViewById(R.id.ivImagenEvento)
         private val tvTitulo: TextView = itemView.findViewById(R.id.tvTituloEvento)
@@ -42,13 +47,18 @@ class EventosAdapter(
         private val tvAsistentes: TextView = itemView.findViewById(R.id.tvAsistentesEvento)
 
         fun bind(evento: Evento) {
-            tvTitulo.text = evento.titulo
-            tvDescripcion.text = evento.descripcion
+            tvTitulo.text = evento.titulo ?: "Sin título"
+            tvDescripcion.text = evento.descripcion ?: "Sin descripción"
             tvAsistentes.text = evento.textoAsistencia()
-            
-            val (fecha, hora) = formatIsoDateSeparated(evento.fecha)
-            tvFecha.text = fecha
-            tvHora.text = hora
+
+            if (evento.fecha != null) {
+                val (fecha, hora) = formatIsoDateSeparated(evento.fecha)
+                tvFecha.text = fecha
+                tvHora.text = hora
+            } else {
+                tvFecha.text = "Fecha no disponible"
+                tvHora.text = ""
+            }
             
             // Cargar imagen con Glide
             evento.urlFoto?.let {

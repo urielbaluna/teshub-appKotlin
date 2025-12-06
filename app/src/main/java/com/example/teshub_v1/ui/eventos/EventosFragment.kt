@@ -9,12 +9,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.teshub_v1.R
 import com.example.teshub_v1.adapter.EventosAdapter
+import com.example.teshub_v1.data.model.Evento
 import com.example.teshub_v1.data.network.RetrofitClient
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.launch
@@ -24,6 +26,8 @@ class EventosFragment : Fragment() {
     private lateinit var rvEventos: RecyclerView
     private lateinit var eventosAdapter: EventosAdapter
     private lateinit var progressBar: ProgressBar
+    private lateinit var searchView: SearchView
+    private var allEventos: List<Evento> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -32,6 +36,7 @@ class EventosFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_eventos, container, false)
         rvEventos = view.findViewById(R.id.rvEventos)
         progressBar = view.findViewById(R.id.progressBarEventos)
+        searchView = view.findViewById(R.id.search_view_eventos)
 
         val fabAddEvent: FloatingActionButton = view.findViewById(R.id.fab_add_event)
         fabAddEvent.setOnClickListener {
@@ -39,6 +44,7 @@ class EventosFragment : Fragment() {
             startActivity(intent)
         }
 
+        setupSearchView()
         return view
     }
 
@@ -79,33 +85,73 @@ class EventosFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val response = RetrofitClient.eventosService.getEventos("Bearer $token")
-                
-                // Verificar que el fragment sigue adjunto antes de actualizar la UI
+
                 if (!isAdded || context == null) return@launch
-                
+
                 progressBar.visibility = View.GONE
 
                 if (response.isSuccessful) {
-                    // --- CORRECCIÓN: Extraer la lista del objeto de respuesta ---
-                    val eventos = response.body()?.eventos ?: emptyList()
-                    eventosAdapter = EventosAdapter(eventos) { evento ->
-                        val intent = Intent(activity, EventoDetalleActivity::class.java)
-                        intent.putExtra("EVENTO_EXTRA", evento)
-                        startActivity(intent)
-                    }
-                    rvEventos.adapter = eventosAdapter
+                    allEventos = response.body()?.eventos ?: emptyList()
+                    eventosAdapter.updateList(allEventos)
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.e("EventosFragment", "Error al cargar eventos: $errorBody")
                     Toast.makeText(context, "Error al cargar eventos: $errorBody", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                // Verificar que el fragment sigue adjunto antes de mostrar el error
                 if (!isAdded || context == null) return@launch
-                
+
                 progressBar.visibility = View.GONE
                 Log.e("EventosFragment", "Excepción: ${e.message}")
                 Toast.makeText(context, "Excepción: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun setupSearchView() {
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                return false
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                if(newText.isNullOrEmpty()){
+                    eventosAdapter.updateList(allEventos)
+                } else {
+                    buscarEventos(newText)
+                }
+                return true
+            }
+        })
+    }
+    private fun buscarEventos(query: String) {
+        val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        val token = sharedPref?.getString("token", null)
+
+        if (token == null) {
+            Toast.makeText(context, "Error de sesión", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.eventosService.buscarEventos(
+                    token = "Bearer $token",
+                    palabra = query,
+                    latitud = null,
+                    longitud = null,
+                    radioKm = null,
+                    fechaInicio = null,
+                    fechaFin = null
+                )
+                if (response.isSuccessful) {
+                    val eventos = response.body()?.eventos ?: emptyList()
+                    eventosAdapter.updateList(eventos)
+                } else {
+                    Log.e("EventosFragment", "Error al buscar eventos: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e("EventosFragment", "Excepción en buscarEventos: ${e.message}")
             }
         }
     }
