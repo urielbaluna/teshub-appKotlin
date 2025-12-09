@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import com.example.teshub_v1.R
 import com.example.teshub_v1.data.model.EditarEventoRequest
@@ -20,9 +21,13 @@ import com.example.teshub_v1.data.network.RetrofitClient
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
@@ -56,11 +61,19 @@ class EditarEventoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_editar_evento)
 
-        eventoActual = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val eventoRecibido = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra("EVENTO_EXTRA", Evento::class.java)
         } else {
-            @Suppress("DEPRECATION") intent.getParcelableExtra("EVENTO_EXTRA")
-        }!!
+            @Suppress("DEPRECATION") intent.getParcelableExtra<Evento>("EVENTO_EXTRA")
+        }
+
+        if (eventoRecibido == null) {
+            Log.e("EditarEventoActivity", "No se recibió el evento para editar.")
+            Toast.makeText(this, "Error: No se pudo cargar el evento.", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+        eventoActual = eventoRecibido
 
         setupViews()
         populateViews()
@@ -84,28 +97,42 @@ class EditarEventoActivity : AppCompatActivity() {
     private fun populateViews() {
         etTitulo.setText(eventoActual.titulo)
         etDescripcion.setText(eventoActual.descripcion)
-        etOrganizadores.setText(eventoActual.organizadores.joinToString(", ") { it.matricula })
-        etCupoMaximo.setText(eventoActual.cupoMaximo.toString())
+        etOrganizadores.setText(eventoActual.organizadores?.joinToString(", ") { it.matricula } ?: "")
+        etCupoMaximo.setText(eventoActual.cupoMaximo?.toString() ?: "")
 
-        latitudSeleccionada = eventoActual.ubicacion.latitud
-        longitudSeleccionada = eventoActual.ubicacion.longitud
-        tvCoordenadas.text = String.format("Lat: %.4f, Lng: %.4f", latitudSeleccionada, longitudSeleccionada)
-
-        // --- CORRECCIÓN: Usar formato que entiende la zona horaria del servidor ---
-        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
-        try {
-            val date = parser.parse(eventoActual.fecha)
-            date?.let { fechaHoraSeleccionada.time = it }
-        } catch (e: Exception) {
-            // Fallback por si la fecha antigua no tiene zona horaria
-            val fallbackParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-            fallbackParser.timeZone = TimeZone.getTimeZone("UTC")
-            val date = fallbackParser.parse(eventoActual.fecha)
-            date?.let { fechaHoraSeleccionada.time = it }
+        latitudSeleccionada = eventoActual.latitud?.toDoubleOrNull()
+        longitudSeleccionada = eventoActual.longitud?.toDoubleOrNull()
+        if (latitudSeleccionada != null && longitudSeleccionada != null) {
+            tvCoordenadas.text = String.format("Lat: %.4f, Lng: %.4f", latitudSeleccionada, longitudSeleccionada)
+        } else {
+            tvCoordenadas.text = "Ubicación no disponible"
         }
 
-        val formatoUsuario = SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault())
-        etFecha.setText(formatoUsuario.format(fechaHoraSeleccionada.time))
+        eventoActual.fecha?.let { dateString ->
+            var parsedDate: Date? = null
+            try {
+                val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
+                parsedDate = parser.parse(dateString)
+            } catch (e: ParseException) {
+                try {
+                    val fallbackParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+                    fallbackParser.timeZone = TimeZone.getTimeZone("UTC")
+                    parsedDate = fallbackParser.parse(dateString)
+                } catch (e2: ParseException) {
+                    Log.e("EditarEventoActivity", "No se pudo parsear la fecha: '$dateString'", e2)
+                }
+            }
+
+            if (parsedDate != null) {
+                fechaHoraSeleccionada.time = parsedDate
+                val formatoUsuario = SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault())
+                etFecha.setText(formatoUsuario.format(fechaHoraSeleccionada.time))
+            } else {
+                etFecha.setText(dateString) // Muestra la fecha original si no se pudo parsear
+            }
+        } ?: run {
+            etFecha.setText("Fecha no especificada")
+        }
     }
 
     private fun mostrarDatePicker() {
@@ -151,58 +178,58 @@ class EditarEventoActivity : AppCompatActivity() {
             Toast.makeText(this, "Por favor, selecciona una ubicación.", Toast.LENGTH_SHORT).show()
             return
         }
+        
+        eventoActual.id?.let { event_Id ->
+            lifecycleScope.launch {
+                try {
+                    val formatoISO = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
+                    val fechaISO = formatoISO.format(fechaHoraSeleccionada.time)
 
-        lifecycleScope.launch {
-            try {
-                // --- CORRECCIÓN: Usar formato ISO 8601 con zona horaria (XXX) ---
-                val formatoISO = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
-                val fechaISO = formatoISO.format(fechaHoraSeleccionada.time)
-
-                val eventoRequest = EditarEventoRequest(
-                    titulo = etTitulo.text.toString(),
-                    descripcion = etDescripcion.text.toString(),
-                    fecha = fechaISO,
-                    latitud = latitudSeleccionada!!,
-                    longitud = longitudSeleccionada!!,
-                    organizadores = etOrganizadores.text.toString(),
-                    cupo_maximo = etCupoMaximo.text.toString().toIntOrNull()
-                )
-
-                val response = RetrofitClient.eventosService.actualizarEvento(
-                    id = eventoActual.id,
-                    token = "Bearer $token",
-                    evento = eventoRequest
-                )
-
-                if (response.isSuccessful) {
-                    Toast.makeText(this@EditarEventoActivity, response.body()?.mensaje ?: "Evento actualizado con éxito", Toast.LENGTH_LONG).show()
-                    
-                    // Crear el evento actualizado con los nuevos valores
-                    val eventoActualizado = eventoActual.copy(
+                    val eventoRequest = EditarEventoRequest(
                         titulo = etTitulo.text.toString(),
                         descripcion = etDescripcion.text.toString(),
                         fecha = fechaISO,
-                        ubicacion = eventoActual.ubicacion.copy(
-                            latitud = latitudSeleccionada!!,
-                            longitud = longitudSeleccionada!!
-                        ),
-                        cupoMaximo = etCupoMaximo.text.toString().toIntOrNull() ?: eventoActual.cupoMaximo
-                        // organizadores, urlFoto, asistentesRegistrados y usuarioRegistrado se mantienen igual
+                        latitud = latitudSeleccionada!!,
+                        longitud = longitudSeleccionada!!,
+                        organizadores = etOrganizadores.text.toString(),
+                        cupo_maximo = etCupoMaximo.text.toString().toIntOrNull()
                     )
-                    
-                    // Devolver el evento actualizado
-                    val intentResult = Intent()
-                    intentResult.putExtra("EVENTO_ACTUALIZADO", eventoActualizado)
-                    setResult(Activity.RESULT_OK, intentResult)
-                    finish()
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    Log.e("EditarEventoActivity", "Error al actualizar: $errorBody")
-                    Toast.makeText(this@EditarEventoActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+
+                    val response = RetrofitClient.eventosService.actualizarEvento(
+                        id = event_Id,
+                        token = "Bearer $token",
+                        evento = eventoRequest
+                    )
+
+                    if (response.isSuccessful) {
+                        val eventoActualizado = eventoActual.copy(
+                            titulo = etTitulo.text.toString(),
+                            descripcion = etDescripcion.text.toString(),
+                            fecha = fechaISO,
+                            latitud = latitudSeleccionada!!.toString(),
+                            longitud = longitudSeleccionada!!.toString(),
+                            cupoMaximo = etCupoMaximo.text.toString().toIntOrNull() ?: eventoActual.cupoMaximo
+                        )
+
+                        val intentResult = Intent()
+                        intentResult.putExtra("EVENTO_ACTUALIZADO", eventoActualizado)
+                        setResult(Activity.RESULT_OK, intentResult)
+                        finish()
+                    } else {
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                            val errorBody = withContext(Dispatchers.IO) {
+                                response.errorBody()?.string()
+                            }
+                            Log.e("EditarEventoActivity", "Error al actualizar: $errorBody")
+                            Toast.makeText(this@EditarEventoActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                        Log.e("EditarEventoActivity", "Excepción al actualizar: ${e.message}")
+                        Toast.makeText(this@EditarEventoActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e("EditarEventoActivity", "Excepción al actualizar: ${e.message}")
-                Toast.makeText(this@EditarEventoActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
