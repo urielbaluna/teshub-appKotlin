@@ -23,6 +23,15 @@
         android:padding="8dp"
         tools:listitem="@layout/list_item_evento" />
 
+    <TextView
+        android:id="@+id/tv_empty_view_eventos"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:text="No hay eventos disponibles" 
+        android:visibility="gone"
+        tools:visibility="visible"/>
+
     <ProgressBar
         android:id="@+id/progressBarEventos"
         style="?android:attr/progressBarStyle"
@@ -35,7 +44,7 @@
         android:id="@+id/fab_add_event"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android.layout_alignParentEnd="true"
+        android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
         android:layout_margin="16dp"
         android:src="@drawable/ic_add"

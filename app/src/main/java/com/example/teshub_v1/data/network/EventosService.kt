@@ -30,7 +30,6 @@ interface EventosService {
         @Part("fecha") fecha: RequestBody,
         @Part("latitud") latitud: RequestBody,
         @Part("longitud") longitud: RequestBody,
-        // --- CORRECCIÓN: Usar el nombre de campo correcto ---
         @Part("organizadores_matriculas") organizadores: RequestBody,
         @Part("cupo_maximo") cupoMaximo: RequestBody,
         @Part foto: MultipartBody.Part?

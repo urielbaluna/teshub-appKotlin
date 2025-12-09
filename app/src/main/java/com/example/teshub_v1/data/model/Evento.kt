@@ -1,25 +1,23 @@
 package com.example.teshub_v1.data.model
 
 import android.os.Parcelable
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-@JsonClass(generateAdapter = true)
 data class Evento(
-    @Json(name = "id_evento") val id: Int?,
-    @Json(name = "titulo") val titulo: String?,
-    @Json(name = "fecha") val fecha: String?,
-    @Json(name = "descripcion") val descripcion: String?,
-    @Json(name = "url_foto") val urlFoto: String?,
-    @Json(name = "latitud") val latitud: String?,
-    @Json(name = "longitud") val longitud: String?,
-    @Json(name = "cupo_maximo") val cupoMaximo: Int?,
-    @Json(name = "es_asistente") val usuarioRegistrado: Boolean?,
-    @Json(name = "es_organizador") val esOrganizador: Boolean?,
-    @Json(name = "organizadores") val organizadores: List<Organizador>? = null,
-    @Json(name = "asistentesRegistrados") val asistentesRegistrados: Int? = 0
+    val id: Int?,
+    val titulo: String?,
+    val fecha: String?,
+    val descripcion: String?,
+    val urlFoto: String?,
+    val latitud: String?,
+    val longitud: String?,
+    val ubicacion: Ubicacion?,
+    val cupoMaximo: Int?,
+    val usuarioRegistrado: Boolean?,
+    val esOrganizador: Boolean?,
+    val organizadores: List<Organizador>? = null,
+    val asistentesRegistrados: Int? = 0
 ) : Parcelable {
 
     fun organizadoresTexto(): String {
@@ -43,16 +41,14 @@ data class Evento(
 }
 
 @Parcelize
-@JsonClass(generateAdapter = true)
 data class Ubicacion(
-    @Json(name = "latitud") val latitud: Double,
-    @Json(name = "longitud") val longitud: Double
+    val latitud: Double,
+    val longitud: Double
 ) : Parcelable
 
 @Parcelize
-@JsonClass(generateAdapter = true)
 data class Organizador(
-    @Json(name = "matricula") val matricula: String,
-    @Json(name = "nombre") val nombre: String,
-    @Json(name = "apellido") val apellido: String?
+    val matricula: String,
+    val nombre: String,
+    val apellido: String?
 ) : Parcelable

@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.teshub_v1.BuildConfig
@@ -28,7 +29,9 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -60,11 +63,19 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_evento_detalle)
 
-        evento = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val eventoRecibido = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra("EVENTO_EXTRA", Evento::class.java)
         } else {
-            @Suppress("DEPRECATION") intent.getParcelableExtra("EVENTO_EXTRA")
-        }!!
+            @Suppress("DEPRECATION") intent.getParcelableExtra<Evento>("EVENTO_EXTRA")
+        }
+
+        if (eventoRecibido == null) {
+            Log.e("EventoDetalleActivity", "No se recibió el evento.")
+            Toast.makeText(this, "Error al cargar el evento.", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+        evento = eventoRecibido
 
         actualizarVista()
 
@@ -90,14 +101,20 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         when {
             evento.usuarioRegistrado == true -> {
                 btnCancelarRegistro.visibility = View.VISIBLE
+                btnRegistrarse.visibility = View.GONE
+                tvEventoLleno.visibility = View.GONE
                 btnCancelarRegistro.setOnClickListener { mostrarDialogoCancelarRegistro() }
             }
             evento.hayLugaresDisponibles -> {
                 btnRegistrarse.visibility = View.VISIBLE
+                btnCancelarRegistro.visibility = View.GONE
+                tvEventoLleno.visibility = View.GONE
                 btnRegistrarse.setOnClickListener { mostrarDialogoRegistrarse() }
             }
             else -> {
                 tvEventoLleno.visibility = View.VISIBLE
+                btnRegistrarse.visibility = View.GONE
+                btnCancelarRegistro.visibility = View.GONE
             }
         }
     }
@@ -125,11 +142,15 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
                         Toast.makeText(this@EventoDetalleActivity, "¡Te has registrado con éxito!", Toast.LENGTH_SHORT).show()
                         recargarEvento()
                     } else {
-                        val errorBody = response.errorBody()?.string()
-                        Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                        val errorBody = withContext(Dispatchers.IO) { response.errorBody()?.string() }
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                            Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                        }
                     }
                 } catch (e: Exception) {
-                    Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                        Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
             }
         }
@@ -158,11 +179,15 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
                         Toast.makeText(this@EventoDetalleActivity, "Registro cancelado", Toast.LENGTH_SHORT).show()
                         recargarEvento()
                     } else {
-                        val errorBody = response.errorBody()?.string()
-                        Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                        val errorBody = withContext(Dispatchers.IO) { response.errorBody()?.string() }
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                            Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                        }
                     }
                 } catch (e: Exception) {
-                    Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+                     if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                        Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
             }
         }
@@ -172,9 +197,11 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
         val matriculaUsuarioActual = sharedPref.getString("matricula", null)
 
-        val creadorDelEvento = evento.organizadores?.firstOrNull()
+        if (matriculaUsuarioActual == null) return
 
-        if (matriculaUsuarioActual != null && creadorDelEvento != null && matriculaUsuarioActual == creadorDelEvento.matricula) {
+        val esOrganizador = evento.organizadores?.any { it.matricula == matriculaUsuarioActual } == true
+
+        if (esOrganizador) {
             val layoutBotones: LinearLayout = findViewById(R.id.layoutBotonesAdmin)
             val btnEditar: Button = findViewById(R.id.btnEditarEvento)
             val btnEliminar: Button = findViewById(R.id.btnEliminarEvento)
@@ -211,15 +238,22 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
                     val response = RetrofitClient.eventosService.eliminarEvento(eventId, "Bearer $token")
                     if (response.isSuccessful) {
                         Toast.makeText(this@EventoDetalleActivity, response.body()?.mensaje ?: "Evento eliminado con éxito", Toast.LENGTH_SHORT).show()
+                        val resultIntent = Intent()
+                        resultIntent.putExtra("EVENTO_ELIMINADO_ID", eventId)
+                        setResult(Activity.RESULT_OK, resultIntent)
                         finish()
                     } else {
-                        val errorBody = response.errorBody()?.string()
-                        Log.e("EventoDetalleActivity", "Error al eliminar: $errorBody")
-                        Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                        val errorBody = withContext(Dispatchers.IO) { response.errorBody()?.string() }
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                            Log.e("EventoDetalleActivity", "Error al eliminar: $errorBody")
+                            Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                        }
                     }
                 } catch (e: Exception) {
-                    Log.e("EventoDetalleActivity", "Excepción al eliminar: ${e.message}")
-                    Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                        Log.e("EventoDetalleActivity", "Excepción al eliminar: ${e.message}")
+                        Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
             }
         }
@@ -234,19 +268,28 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
                 try {
                     val response = RetrofitClient.eventosService.getEvento(eventId, "Bearer $token")
                     if (response.isSuccessful && response.body() != null) {
-                        evento = response.body()!!
-                        actualizarVista()
-                        Toast.makeText(this@EventoDetalleActivity, "Evento actualizado", Toast.LENGTH_SHORT).show()
+                        // Asumiendo que getEvento devuelve un objeto Evento directamente o un wrapper
+                        // Si es un wrapper, necesitarás acceder a response.body().evento
+                        val eventoRecargado = response.body()!! 
+                        if(eventoRecargado is Evento){
+                            evento = eventoRecargado
+                            actualizarVista()
+                            Toast.makeText(this@EventoDetalleActivity, "Evento actualizado", Toast.LENGTH_SHORT).show()
+                        }
                     } else {
-                        val errorBody = response.errorBody()?.string()
-                        Log.e("EventoDetalleActivity", "Error al recargar: $errorBody")
-                        Toast.makeText(this@EventoDetalleActivity, "Error al recargar el evento", Toast.LENGTH_SHORT).show()
-                        finish() // Cerrar si no se pudo recargar
+                        val errorBody = withContext(Dispatchers.IO) { response.errorBody()?.string() }
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                            Log.e("EventoDetalleActivity", "Error al recargar: $errorBody")
+                            Toast.makeText(this@EventoDetalleActivity, "Error al recargar el evento", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
                     }
                 } catch (e: Exception) {
-                    Log.e("EventoDetalleActivity", "Excepción al recargar: ${e.message}")
-                    Toast.makeText(this@EventoDetalleActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                    finish()
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                        Log.e("EventoDetalleActivity", "Excepción al recargar: ${e.message}")
+                        Toast.makeText(this@EventoDetalleActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
                 }
             }
         }
