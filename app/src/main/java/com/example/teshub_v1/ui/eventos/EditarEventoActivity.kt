@@ -100,12 +100,20 @@ class EditarEventoActivity : AppCompatActivity() {
         etOrganizadores.setText(eventoActual.organizadores?.joinToString(", ") { it.matricula } ?: "")
         etCupoMaximo.setText(eventoActual.cupoMaximo?.toString() ?: "")
 
-        latitudSeleccionada = eventoActual.latitud?.toDoubleOrNull()
-        longitudSeleccionada = eventoActual.longitud?.toDoubleOrNull()
-        if (latitudSeleccionada != null && longitudSeleccionada != null) {
+        // Cargar ubicación desde el objeto ubicacion
+        eventoActual.ubicacion?.let {
+            latitudSeleccionada = it.latitud
+            longitudSeleccionada = it.longitud
             tvCoordenadas.text = String.format("Lat: %.4f, Lng: %.4f", latitudSeleccionada, longitudSeleccionada)
-        } else {
-            tvCoordenadas.text = "Ubicación no disponible"
+        } ?: run {
+            // Si no hay objeto ubicacion, intentar usar las propiedades directas
+            latitudSeleccionada = eventoActual.latitud?.toDoubleOrNull()
+            longitudSeleccionada = eventoActual.longitud?.toDoubleOrNull()
+            if (latitudSeleccionada != null && longitudSeleccionada != null) {
+                tvCoordenadas.text = String.format("Lat: %.4f, Lng: %.4f", latitudSeleccionada, longitudSeleccionada)
+            } else {
+                tvCoordenadas.text = "Ubicación no disponible"
+            }
         }
 
         eventoActual.fecha?.let { dateString ->
