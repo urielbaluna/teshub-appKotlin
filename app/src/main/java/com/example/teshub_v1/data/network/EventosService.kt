@@ -30,7 +30,6 @@ interface EventosService {
         @Part("fecha") fecha: RequestBody,
         @Part("latitud") latitud: RequestBody,
         @Part("longitud") longitud: RequestBody,
-        // --- CORRECCIÓN: Usar el nombre de campo correcto ---
         @Part("organizadores_matriculas") organizadores: RequestBody,
         @Part("cupo_maximo") cupoMaximo: RequestBody,
         @Part foto: MultipartBody.Part?
@@ -60,4 +59,16 @@ interface EventosService {
         @Path("id") id: Int,
         @Header("Authorization") token: String
     ): Response<CrearEventoResponse>
+    @GET("api/buscar/eventos")
+    suspend fun buscarEventos(
+        @Header("Authorization") token: String,
+        @Query("palabra") palabra: String?,
+        @Query("lat") latitud: Double?,
+        @Query("lng") longitud: Double?,
+        @Query("radioKm") radioKm: Int?,
+        @Query("fecha_inicio") fechaInicio: String?,
+        @Query("fecha_fin") fechaFin: String?
+    ): Response<EventosResponse>
+
+
 }
