@@ -30,12 +30,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".ui.auth.RegisterActivity"
 
-        <activity android:name=".ui.auth.RegisterActivity" android:exported="false" />
-        <activity android:name=".ui.auth.ForgotpasswordActivity" android:exported="false" />
-        <activity android:name=".ui.auth.ResetpasswordActivity" android:exported="false" />
+
 
         <activity
             android:name=".ui.home.HomeContainerActivity"
@@ -47,18 +43,12 @@
             android:name=".ui.auth.ResetpasswordActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.home.HomeContainerActivity"
-            android:exported="false" />
-        <activity
             android:name=".ui.publicaciones.CrearPublicacionActivity"
             android:exported="false" />
         <activity
             android:name=".ui.usuarios.ActualizarUsuarioActivity"
             android:exported="false" />
-            android:name=".ui.publicaciones.CrearPublicacionActivity"
-            android:exported="false" />
 
-        <activity android:name=".ui.usuarios.ActualizarUsuarioActivity" android:exported="false" />
 
         <activity android:name=".ui.eventos.EventoDetalleActivity" />
         <activity android:name=".ui.eventos.CrearEventoActivity" />
