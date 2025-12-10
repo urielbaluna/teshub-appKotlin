@@ -27,9 +27,7 @@ import com.example.teshub_v1.data.model.PublicacionInfo
 import com.example.teshub_v1.data.network.RetrofitClient
 import com.example.teshub_v1.ui.auth.MainActivity
 import com.example.teshub_v1.ui.eventos.EventoDetalleActivity
-import com.example.teshub_v1.data.model.PublicacionInfo
-import com.example.teshub_v1.data.network.RetrofitClient
-import com.example.teshub_v1.ui.auth.MainActivity
+
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import retrofit2.HttpException
