@@ -52,4 +52,10 @@ interface UsuariosService {
         @Body body: Map<String, String> = emptyMap()
     ): GeneralResponse
 
+    @GET("api/usuarios/matricula/eventos")
+    suspend fun getEventoUsuario(
+        @Header("Authorization") token: String
+    ): GeneralResponse
+
+
 }
