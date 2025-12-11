@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.teshub_v1.BuildConfig
@@ -27,9 +28,10 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -41,7 +43,6 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
     private val editarEventoLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // Obtener el evento actualizado del Intent
             val eventoActualizado = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 result.data?.getParcelableExtra("EVENTO_ACTUALIZADO", Evento::class.java)
             } else {
@@ -53,7 +54,6 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
                 actualizarVista()
                 Toast.makeText(this, "Evento actualizado", Toast.LENGTH_SHORT).show()
             } else {
-                // Fallback: recargar desde el servidor si no se recibió el evento
                 recargarEvento()
             }
         }
@@ -63,34 +63,21 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_evento_detalle)
 
-        evento = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val eventoRecibido = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra("EVENTO_EXTRA", Evento::class.java)
         } else {
-            @Suppress("DEPRECATION") intent.getParcelableExtra("EVENTO_EXTRA")
-        }!!
-
-        val ivFoto: ImageView = findViewById(R.id.ivFotoEvento)
-        val tvTitulo: TextView = findViewById(R.id.tvTituloDetalle)
-        val tvOrganizadores: TextView = findViewById(R.id.tvOrganizadoresDetalle)
-        val tvFecha: TextView = findViewById(R.id.tvFechaDetalle)
-        val tvDescripcion: TextView = findViewById(R.id.tvDescripcionDetalle)
-
-        tvTitulo.text = evento.titulo
-        tvOrganizadores.text = evento.organizadoresTexto()
-        tvFecha.text = formatIsoDate(evento.fecha)
-        tvDescripcion.text = evento.descripcion
-
-        evento.urlFoto?.let {
-            val fullImageUrl = if (it.startsWith("http")) it else "${BuildConfig.API_BASE_URL}/$it"
-            Glide.with(this)
-                .load(fullImageUrl)
-                .centerCrop()
-                .placeholder(android.R.color.darker_gray)
-                .into(ivFoto)
-        } ?: run {
-            // Si no hay foto, mostrar placeholder
-            ivFoto.setImageResource(android.R.color.darker_gray)
+            @Suppress("DEPRECATION") intent.getParcelableExtra<Evento>("EVENTO_EXTRA")
         }
+
+        if (eventoRecibido == null) {
+            Log.e("EventoDetalleActivity", "No se recibió el evento.")
+            Toast.makeText(this, "Error al cargar el evento.", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+        evento = eventoRecibido
+
+        actualizarVista()
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
@@ -105,28 +92,29 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         val btnCancelarRegistro: MaterialButton = findViewById(R.id.btnCancelarRegistro)
         val tvEventoLleno: TextView = findViewById(R.id.tvEventoLleno)
 
-        // Mostrar información de asistencia
         tvInfoAsistencia.text = if (evento.hayLugaresDisponibles) {
-            "Lugares disponibles: ${evento.cupoDisponible} de ${evento.cupoMaximo}"
+            "Lugares disponibles: ${evento.cupoDisponible} de ${evento.cupoMaximo ?: 0}"
         } else {
-            "Asistentes: ${evento.asistentesRegistrados}/${evento.cupoMaximo}"
+            "Asistentes: ${evento.asistentesRegistrados ?: 0}/${evento.cupoMaximo ?: 0}"
         }
 
-        // Mostrar botón apropiado
         when {
-            evento.usuarioRegistrado -> {
-                // Usuario ya registrado: mostrar botón cancelar
+            evento.usuarioRegistrado == true -> {
                 btnCancelarRegistro.visibility = View.VISIBLE
+                btnRegistrarse.visibility = View.GONE
+                tvEventoLleno.visibility = View.GONE
                 btnCancelarRegistro.setOnClickListener { mostrarDialogoCancelarRegistro() }
             }
             evento.hayLugaresDisponibles -> {
-                // Hay cupo disponible: mostrar botón registrarse
                 btnRegistrarse.visibility = View.VISIBLE
+                btnCancelarRegistro.visibility = View.GONE
+                tvEventoLleno.visibility = View.GONE
                 btnRegistrarse.setOnClickListener { mostrarDialogoRegistrarse() }
             }
             else -> {
-                // Evento lleno
                 tvEventoLleno.visibility = View.VISIBLE
+                btnRegistrarse.visibility = View.GONE
+                btnCancelarRegistro.visibility = View.GONE
             }
         }
     }
@@ -146,20 +134,24 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
         val token = sharedPref.getString("token", null) ?: return
 
-        lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.eventosService.registrarseEvento(evento.id, "Bearer $token")
-                if (response.isSuccessful) {
-                    Toast.makeText(this@EventoDetalleActivity, "¡Te has registrado con éxito!", Toast.LENGTH_SHORT).show()
-                    // Recargar la actividad para actualizar la UI
-                    finish()
-                    startActivity(intent)
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+        evento.id?.let { eventId ->
+            lifecycleScope.launch {
+                try {
+                    val response = RetrofitClient.eventosService.registrarseEvento(eventId, "Bearer $token")
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@EventoDetalleActivity, "¡Te has registrado con éxito!", Toast.LENGTH_SHORT).show()
+                        recargarEvento()
+                    } else {
+                        val errorBody = withContext(Dispatchers.IO) { response.errorBody()?.string() }
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                            Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                        Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
-            } catch (e: Exception) {
-                Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -179,20 +171,24 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
         val token = sharedPref.getString("token", null) ?: return
 
-        lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.eventosService.cancelarRegistroEvento(evento.id, "Bearer $token")
-                if (response.isSuccessful) {
-                    Toast.makeText(this@EventoDetalleActivity, "Registro cancelado", Toast.LENGTH_SHORT).show()
-                    // Recargar la actividad para actualizar la UI
-                    finish()
-                    startActivity(intent)
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+        evento.id?.let { eventId ->
+            lifecycleScope.launch {
+                try {
+                    val response = RetrofitClient.eventosService.cancelarRegistroEvento(eventId, "Bearer $token")
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@EventoDetalleActivity, "Registro cancelado", Toast.LENGTH_SHORT).show()
+                        recargarEvento()
+                    } else {
+                        val errorBody = withContext(Dispatchers.IO) { response.errorBody()?.string() }
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                            Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                     if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                        Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
-            } catch (e: Exception) {
-                Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -201,9 +197,11 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
         val matriculaUsuarioActual = sharedPref.getString("matricula", null)
 
-        val creadorDelEvento = evento.organizadores.firstOrNull()
+        if (matriculaUsuarioActual == null) return
 
-        if (matriculaUsuarioActual != null && creadorDelEvento != null && matriculaUsuarioActual == creadorDelEvento.matricula) {
+        val esOrganizador = evento.organizadores?.any { it.matricula == matriculaUsuarioActual } == true
+
+        if (esOrganizador) {
             val layoutBotones: LinearLayout = findViewById(R.id.layoutBotonesAdmin)
             val btnEditar: Button = findViewById(R.id.btnEditarEvento)
             val btnEliminar: Button = findViewById(R.id.btnEliminarEvento)
@@ -234,20 +232,29 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
         val token = sharedPref.getString("token", null) ?: return
 
-        lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.eventosService.eliminarEvento(evento.id, "Bearer $token")
-                if (response.isSuccessful) {
-                    Toast.makeText(this@EventoDetalleActivity, response.body()?.mensaje ?: "Evento eliminado con éxito", Toast.LENGTH_SHORT).show()
-                    finish()
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    Log.e("EventoDetalleActivity", "Error al eliminar: $errorBody")
-                    Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+        evento.id?.let { eventId ->
+            lifecycleScope.launch {
+                try {
+                    val response = RetrofitClient.eventosService.eliminarEvento(eventId, "Bearer $token")
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@EventoDetalleActivity, response.body()?.mensaje ?: "Evento eliminado con éxito", Toast.LENGTH_SHORT).show()
+                        val resultIntent = Intent()
+                        resultIntent.putExtra("EVENTO_ELIMINADO_ID", eventId)
+                        setResult(Activity.RESULT_OK, resultIntent)
+                        finish()
+                    } else {
+                        val errorBody = withContext(Dispatchers.IO) { response.errorBody()?.string() }
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                            Log.e("EventoDetalleActivity", "Error al eliminar: $errorBody")
+                            Toast.makeText(this@EventoDetalleActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                        Log.e("EventoDetalleActivity", "Excepción al eliminar: ${e.message}")
+                        Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e("EventoDetalleActivity", "Excepción al eliminar: ${e.message}")
-                Toast.makeText(this@EventoDetalleActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -256,21 +263,34 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
         val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
         val token = sharedPref.getString("token", null) ?: return
 
-        lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.eventosService.getEvento(evento.id, "Bearer $token")
-                if (response.isSuccessful && response.body() != null) {
-                    evento = response.body()!!
-                    actualizarVista()
-                    Toast.makeText(this@EventoDetalleActivity, "Evento actualizado", Toast.LENGTH_SHORT).show()
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    Log.e("EventoDetalleActivity", "Error al recargar: $errorBody")
-                    Toast.makeText(this@EventoDetalleActivity, "Error al recargar el evento", Toast.LENGTH_SHORT).show()
+        evento.id?.let { eventId ->
+            lifecycleScope.launch {
+                try {
+                    val response = RetrofitClient.eventosService.getEvento(eventId, "Bearer $token")
+                    if (response.isSuccessful && response.body() != null) {
+                        // Asumiendo que getEvento devuelve un objeto Evento directamente o un wrapper
+                        // Si es un wrapper, necesitarás acceder a response.body().evento
+                        val eventoRecargado = response.body()!! 
+                        if(eventoRecargado is Evento){
+                            evento = eventoRecargado
+                            actualizarVista()
+                            Toast.makeText(this@EventoDetalleActivity, "Evento actualizado", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        val errorBody = withContext(Dispatchers.IO) { response.errorBody()?.string() }
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                            Log.e("EventoDetalleActivity", "Error al recargar: $errorBody")
+                            Toast.makeText(this@EventoDetalleActivity, "Error al recargar el evento", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                    }
+                } catch (e: Exception) {
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                        Log.e("EventoDetalleActivity", "Excepción al recargar: ${e.message}")
+                        Toast.makeText(this@EventoDetalleActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e("EventoDetalleActivity", "Excepción al recargar: ${e.message}")
-                Toast.makeText(this@EventoDetalleActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -284,7 +304,11 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
 
         tvTitulo.text = evento.titulo
         tvOrganizadores.text = evento.organizadoresTexto()
-        tvFecha.text = formatIsoDate(evento.fecha)
+        if (evento.fecha != null) {
+            tvFecha.text = formatIsoDate(evento.fecha!!)
+        } else {
+            tvFecha.text = "Fecha no disponible"
+        }
         tvDescripcion.text = evento.descripcion
 
         evento.urlFoto?.let {
@@ -298,41 +322,46 @@ class EventoDetalleActivity : AppCompatActivity(), OnMapReadyCallback {
             ivFoto.setImageResource(android.R.color.darker_gray)
         }
 
-        // Actualizar el mapa
-        val ubicacion = LatLng(evento.ubicacion.latitud, evento.ubicacion.longitud)
-        mMap.clear()
-        mMap.addMarker(MarkerOptions().position(ubicacion).title(evento.titulo))
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(ubicacion, 18f))
-
-        // Actualizar la información de asistencia
+        if (::mMap.isInitialized) {
+            val lat = evento.latitud?.toDoubleOrNull()
+            val lng = evento.longitud?.toDoubleOrNull()
+            if (lat != null && lng != null) {
+                val ubicacion = LatLng(lat, lng)
+                mMap.clear()
+                mMap.addMarker(MarkerOptions().position(ubicacion).title(evento.titulo))
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(ubicacion, 18f))
+            }
+        }
         configurarAsistencia()
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
-        val ubicacion = LatLng(evento.ubicacion.latitud, evento.ubicacion.longitud)
-        mMap.addMarker(MarkerOptions().position(ubicacion).title(evento.titulo))
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(ubicacion, 18f))
+        val lat = evento.latitud?.toDoubleOrNull()
+        val lng = evento.longitud?.toDoubleOrNull()
+        if (lat != null && lng != null) {
+            val ubicacion = LatLng(lat, lng)
+            mMap.addMarker(MarkerOptions().position(ubicacion).title(evento.titulo))
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(ubicacion, 18f))
+        }
     }
 
     private fun formatIsoDate(isoDate: String): String {
         return try {
-            // --- CORRECCIÓN: Intentar primero con el formato que incluye zona horaria ---
             val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
             val date = parser.parse(isoDate)
             val formatter = SimpleDateFormat("dd 'de' MMMM, yyyy 'a las' hh:mm a", Locale.getDefault())
             date?.let { formatter.format(it) } ?: isoDate
         } catch (e: Exception) {
             try {
-                // Fallback por si la fecha es antigua (formato UTC)
                 val fallbackParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
                 fallbackParser.timeZone = TimeZone.getTimeZone("UTC")
                 val date = fallbackParser.parse(isoDate)
                 val formatter = SimpleDateFormat("dd 'de' MMMM, yyyy 'a las' hh:mm a", Locale.getDefault())
-                formatter.timeZone = TimeZone.getDefault() // Convertir a la zona local para mostrar
+                formatter.timeZone = TimeZone.getDefault()
                 date?.let { formatter.format(it) } ?: isoDate
             } catch (e2: Exception) {
-                isoDate // Si todo falla, mostrar la fecha tal cual
+                isoDate
             }
         }
     }
