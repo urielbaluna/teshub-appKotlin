@@ -1,11 +1,9 @@
 package com.example.teshub_v1.ui.usuarios
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,42 +11,54 @@ import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.example.teshub_v1.BuildConfig
 import com.example.teshub_v1.R
+import com.example.teshub_v1.data.model.ActualizarInteresesRequest
+import com.example.teshub_v1.data.model.Interes
 import com.example.teshub_v1.data.network.RetrofitClient
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textfield.TextInputEditText
 import de.hdodenhof.circleimageview.CircleImageView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.FileOutputStream
 
 class ActualizarUsuarioActivity : AppCompatActivity() {
 
+    // Vistas de Perfil
     private lateinit var ivPerfil: CircleImageView
     private lateinit var etNombre: TextInputEditText
     private lateinit var etApellido: TextInputEditText
     private lateinit var etCorreo: TextInputEditText
-    private lateinit var etPassword: TextInputEditText
+
+    // Campos académicos y bio
+    private lateinit var etCarrera: TextInputEditText
+    private lateinit var etSemestre: TextInputEditText
+    private lateinit var etBiografia: TextInputEditText
+    private lateinit var etUbicacion: TextInputEditText
+
+    // Vistas de Intereses
+    private lateinit var chipGroupIntereses: ChipGroup
+
+    // Botones de Acción
     private lateinit var btnGuardar: Button
+    private lateinit var btnCambiarPass: Button
+    private lateinit var btnEliminarCuenta: Button
 
     private var selectedImageUri: Uri? = null
+    private var emailOriginal: String = ""
 
-    // Lanzador para abrir la galería
-    private val imagePickerLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.let { uri ->
-                selectedImageUri = uri
-                // Mostrar la nueva imagen seleccionada
-                Glide.with(this).load(uri).into(ivPerfil)
-            }
+    // Selector de Imagen
+    private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            selectedImageUri = it
+            ivPerfil.setImageURI(it)
         }
     }
 
@@ -56,126 +66,216 @@ class ActualizarUsuarioActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_actualizarusuario)
 
-        // Referencias
+        initViews()
+        cargarDatosCompletos()
+
+        // Listeners
+        ivPerfil.setOnClickListener { imagePickerLauncher.launch("image/*") }
+        btnGuardar.setOnClickListener { guardarTodo() }
+
+        // Redirección a Seguridad (Activity nueva)
+        btnCambiarPass.setOnClickListener {
+            val intent = Intent(this, SeguridadActivity::class.java)
+            intent.putExtra("ACCION_TIPO", "PASSWORD")
+            startActivity(intent)
+        }
+
+        btnEliminarCuenta.setOnClickListener {
+            val intent = Intent(this, SeguridadActivity::class.java)
+            intent.putExtra("ACCION_TIPO", "DELETE")
+            startActivity(intent)
+        }
+    }
+
+    private fun initViews() {
         ivPerfil = findViewById(R.id.ivPerfilActualizar)
         etNombre = findViewById(R.id.etNombre)
         etApellido = findViewById(R.id.etApellido)
         etCorreo = findViewById(R.id.etCorreo)
-        etPassword = findViewById(R.id.etPassword)
+
+        etCarrera = findViewById(R.id.etCarrera)
+        etSemestre = findViewById(R.id.etSemestre)
+        etBiografia = findViewById(R.id.etBiografia)
+        etUbicacion = findViewById(R.id.etUbicacion)
+
+        chipGroupIntereses = findViewById(R.id.chipGroupIntereses)
+
         btnGuardar = findViewById(R.id.btnGuardar)
 
-        // 1. Cargar datos actuales
-        cargarDatosActuales()
-
-        // 2. Configurar clic en la imagen para cambiarla
-        ivPerfil.setOnClickListener {
-            abrirGaleria()
-        }
-
-        // 3. Guardar cambios
-        btnGuardar.setOnClickListener {
-            guardarCambios()
-        }
+        // Botones de seguridad (reemplazan al etPassword)
+        btnCambiarPass = findViewById(R.id.btnIrCambiarPass)
+        btnEliminarCuenta = findViewById(R.id.btnIrEliminarCuenta)
     }
 
-    private fun abrirGaleria() {
-        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-        imagePickerLauncher.launch(intent)
-    }
-
-    private fun cargarDatosActuales() {
+    private fun cargarDatosCompletos() {
         val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", null)
         if (token == null) return
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val perfil = RetrofitClient.usuariosService.getPerfil("Bearer $token")
-                withContext(Dispatchers.Main) {
-                    etNombre.setText(perfil.nombre)
-                    etApellido.setText(perfil.apellido)
-                    etCorreo.setText(perfil.correo)
+                // Carga paralela para velocidad
+                val perfilDeferred = async { RetrofitClient.usuariosService.getPerfil("Bearer $token") }
+                val catalogoDeferred = async { RetrofitClient.usuariosService.getCatalogoIntereses("Bearer $token") }
 
-                    if (!perfil.imagen.isNullOrEmpty()) {
-                        val baseUrl = if (BuildConfig.API_BASE_URL.endsWith("/")) BuildConfig.API_BASE_URL else "${BuildConfig.API_BASE_URL}/"
-                        Glide.with(this@ActualizarUsuarioActivity)
-                            .load(baseUrl + perfil.imagen)
-                            .placeholder(R.drawable.ic_profile)
-                            .into(ivPerfil)
+                val responsePerfil = perfilDeferred.await()
+                val responseCatalogo = catalogoDeferred.await()
+
+                withContext(Dispatchers.Main) {
+                    // 1. Procesar Perfil
+                    if (responsePerfil.isSuccessful && responsePerfil.body() != null) {
+                        val perfil = responsePerfil.body()!!
+
+                        etNombre.setText(perfil.nombre)
+                        etApellido.setText(perfil.apellido)
+                        etCorreo.setText(perfil.correo)
+                        emailOriginal = perfil.correo
+
+                        etCarrera.setText(perfil.carrera ?: "")
+                        etSemestre.setText(perfil.semestre ?: "")
+                        etBiografia.setText(perfil.biografia ?: "")
+                        etUbicacion.setText(perfil.ubicacion ?: "")
+
+                        if (!perfil.imagen.isNullOrEmpty()) {
+                            val baseUrl = BuildConfig.API_BASE_URL.removeSuffix("/") + "/"
+                            Glide.with(this@ActualizarUsuarioActivity)
+                                .load(baseUrl + perfil.imagen)
+                                .placeholder(R.drawable.ic_profile)
+                                .into(ivPerfil)
+                        }
+
+                        // 2. Procesar Intereses (si el catálogo cargó)
+                        if (responseCatalogo.isSuccessful && responseCatalogo.body() != null) {
+                            val catalogo = responseCatalogo.body()!!
+                            // Extraemos los IDs que el usuario YA tiene
+                            val misInteresesIds = perfil.intereses.map { it.id_interes }
+                            poblarChipGroup(catalogo, misInteresesIds)
+                        }
+                    } else {
+                        Toast.makeText(this@ActualizarUsuarioActivity, "Error al cargar datos", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@ActualizarUsuarioActivity, "Error al cargar datos", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ActualizarUsuarioActivity, "Error de conexión: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
-    private fun guardarCambios() {
+    private fun poblarChipGroup(catalogo: List<Interes>, misInteresesIds: List<Int>) {
+        chipGroupIntereses.removeAllViews()
+
+        for (item in catalogo) {
+            val chip = Chip(this)
+            chip.text = item.nombre
+            chip.tag = item.id_interes // Guardamos el ID
+
+            // Comportamiento Checkbox
+            chip.isCheckable = true
+            chip.isClickable = true
+
+            // Estado inicial (marcado o no)
+            chip.isChecked = misInteresesIds.contains(item.id_interes)
+
+            // --- ESTILOS VISUALES (Selectores) ---
+            // Fondo: Verde al seleccionar, Blanco/Gris al deseleccionar
+            chip.setChipBackgroundColorResource(R.color.chip_background_selector)
+
+            // Texto: Blanco al seleccionar, Negro al deseleccionar
+            chip.setTextColor(getColorStateList(R.color.selector_chip_texto))
+
+            // Borde: Sin borde (0f) o borde fino
+            chip.chipStrokeWidth = 0f
+
+            chipGroupIntereses.addView(chip)
+        }
+    }
+
+    private fun guardarTodo() {
         val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", null) ?: return
+        btnGuardar.isEnabled = false
+        btnGuardar.text = "Guardando..."
 
-        val nombre = etNombre.text.toString()
-        val apellido = etApellido.text.toString()
-        val correo = etCorreo.text.toString()
-        val password = etPassword.text.toString()
+        // A. Preparar Textos
+        val nombrePart = etNombre.text.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+        val apellidoPart = etApellido.text.toString().toRequestBody("text/plain".toMediaTypeOrNull())
 
-        // Convertir a RequestBody
-        val nombrePart = nombre.toRequestBody("text/plain".toMediaTypeOrNull())
-        val apellidoPart = apellido.toRequestBody("text/plain".toMediaTypeOrNull())
-        val correoPart = correo.toRequestBody("text/plain".toMediaTypeOrNull())
-
-        // Contraseña es opcional
-        val passwordPart = if (password.isNotEmpty()) {
-            password.toRequestBody("text/plain".toMediaTypeOrNull())
+        val correoActual = etCorreo.text.toString().trim()
+        val correoPart = if (correoActual != emailOriginal) {
+            correoActual.toRequestBody("text/plain".toMediaTypeOrNull())
         } else null
 
-        // Imagen es opcional
+        val carreraPart = etCarrera.text.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+        val semestrePart = etSemestre.text.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+        val bioPart = etBiografia.text.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+        val ubiPart = etUbicacion.text.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+
+        // B. Preparar Imagen
         var imagenPart: MultipartBody.Part? = null
         selectedImageUri?.let { uri ->
-            val file = getFileFromUri(uri)
-            if (file != null) {
-                val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
-                imagenPart = MultipartBody.Part.createFormData("imagen", file.name, requestFile)
+            val file = uriToFile(uri)
+            val requestFile = file.readBytes().toRequestBody("image/jpeg".toMediaTypeOrNull())
+            imagenPart = MultipartBody.Part.createFormData("imagen", file.name, requestFile)
+        }
+
+        // C. Recolectar Intereses Seleccionados
+        val selectedIds = mutableListOf<Int>()
+        for (i in 0 until chipGroupIntereses.childCount) {
+            val chip = chipGroupIntereses.getChildAt(i) as Chip
+            if (chip.isChecked) {
+                selectedIds.add(chip.tag as Int)
             }
         }
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = RetrofitClient.usuariosService.actualizarUsuario(
-                    "Bearer $token",
-                    nombrePart,
-                    apellidoPart,
-                    correoPart,
-                    passwordPart,
-                    imagenPart
+                // 1. Guardar Datos Personales (Enviamos null en password/codigo)
+                val responsePerfil = RetrofitClient.usuariosService.actualizarUsuario(
+                    token = "Bearer $token",
+                    nombre = nombrePart,
+                    apellido = apellidoPart,
+                    correo = correoPart,
+                    contrasena = null, // No cambiamos pass aquí
+                    codigo = null,     // No enviamos código
+                    carrera = carreraPart,
+                    semestre = semestrePart,
+                    biografia = bioPart,
+                    ubicacion = ubiPart,
+                    imagen = imagenPart
                 )
 
+                // 2. Guardar Intereses
+                val requestIntereses = ActualizarInteresesRequest(selectedIds)
+                val responseIntereses = RetrofitClient.usuariosService.actualizarMisIntereses("Bearer $token", requestIntereses)
+
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@ActualizarUsuarioActivity, response.mensaje, Toast.LENGTH_LONG).show()
-                    finish() // Cierra la actividad y vuelve al perfil
+                    if (responsePerfil.isSuccessful && responseIntereses.isSuccessful) {
+                        Toast.makeText(this@ActualizarUsuarioActivity, "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
+                        finish()
+                    } else {
+                        // Hubo algún error, mostramos mensaje genérico o específico
+                        Toast.makeText(this@ActualizarUsuarioActivity, "Datos guardados parcialmente", Toast.LENGTH_LONG).show()
+                        finish()
+                    }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@ActualizarUsuarioActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    val msg = if (correoPart != null) "Cambiar correo puede requerir verificación extra." else "Error: ${e.message}"
+                    Toast.makeText(this@ActualizarUsuarioActivity, msg, Toast.LENGTH_LONG).show()
+                    btnGuardar.isEnabled = true
+                    btnGuardar.text = "Guardar Cambios"
                 }
             }
         }
     }
 
-    // Función auxiliar para obtener archivo real desde URI
-    private fun getFileFromUri(uri: Uri): File? {
-        return try {
-            val contentResolver = applicationContext.contentResolver
-            val inputStream = contentResolver.openInputStream(uri)
-            val file = File(applicationContext.cacheDir, "temp_image_${System.currentTimeMillis()}.jpg")
-            val outputStream = FileOutputStream(file)
-            inputStream?.copyTo(outputStream)
-            inputStream?.close()
-            outputStream.close()
-            file
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
+    private fun uriToFile(uri: Uri): File {
+        val inputStream = contentResolver.openInputStream(uri)!!
+        val tempFile = File(cacheDir, "temp_profile_${System.currentTimeMillis()}.jpg")
+        val outputStream = FileOutputStream(tempFile)
+        inputStream.copyTo(outputStream)
+        inputStream.close()
+        outputStream.close()
+        return tempFile
     }
 }
