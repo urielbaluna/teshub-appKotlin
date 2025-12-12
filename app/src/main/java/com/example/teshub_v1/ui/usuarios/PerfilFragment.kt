@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
@@ -20,9 +21,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.teshub_v1.BuildConfig
 import com.example.teshub_v1.R
+import com.example.teshub_v1.data.model.Evento
+import com.example.teshub_v1.adapter.EventosAdapter
 import com.example.teshub_v1.data.model.PublicacionInfo
 import com.example.teshub_v1.data.network.RetrofitClient
 import com.example.teshub_v1.ui.auth.MainActivity
+import com.example.teshub_v1.ui.eventos.EventoDetalleActivity
+
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import retrofit2.HttpException
@@ -39,6 +44,11 @@ class PerfilFragment : Fragment() {
     private lateinit var layoutFeaturedPublication: LinearLayout
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapterPerfil: PerfilPublicacionAdapter
+    private var eventosAdapter: EventosAdapter? = null
+    private lateinit var btnTabPublicaciones: Button
+    private lateinit var btnTabEventos: Button
+
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -55,6 +65,8 @@ class PerfilFragment : Fragment() {
         tvFeaturedPublicationTitle = view.findViewById(R.id.tv_featured_publication_title)
         layoutFeaturedPublication = view.findViewById(R.id.layout_destacada)
         recyclerView = view.findViewById(R.id.rv_publicaciones_usuario)
+        btnTabPublicaciones = view.findViewById(R.id.btn_tab_publicaciones)
+        btnTabEventos = view.findViewById(R.id.btn_tab_eventos)
 
         recyclerView.layoutManager = LinearLayoutManager(context)
 
@@ -82,6 +94,19 @@ class PerfilFragment : Fragment() {
             popup.show()
         }
 
+        btnTabPublicaciones.setOnClickListener {
+            seleccionarPestania(true)
+            // Asegurar que el RecyclerView use el adaptador de publicaciones
+            recyclerView.adapter = adapterPerfil
+            loadUserPublications(activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)?.getString("token", null) ?: return@setOnClickListener)
+        }
+
+        btnTabEventos.setOnClickListener {
+            seleccionarPestania(false)
+            // Cambiar el adapter por el de eventos y cargar los eventos vinculados
+            cargarEventos()
+        }
+        seleccionarPestania(true)
         loadUserProfile()
 
         return view
@@ -142,6 +167,7 @@ class PerfilFragment : Fragment() {
             } catch (e: Exception) {
                 if (isAdded) Toast.makeText(context, "Error de red", Toast.LENGTH_SHORT).show()
             }
+
         }
     }
 
@@ -217,4 +243,59 @@ class PerfilFragment : Fragment() {
         startActivity(intent)
         activity?.finish()
     }
+
+    private fun seleccionarPestania(esPublicaciones: Boolean){
+        if (esPublicaciones){
+            btnTabPublicaciones.background = resources.getDrawable(R.drawable.tab_selected_bg, null)
+            btnTabEventos.background = resources.getDrawable(R.drawable.tab_unselected_bg, null)
+        }else{
+            btnTabPublicaciones.background = resources.getDrawable(R.drawable.tab_unselected_bg, null)
+            btnTabEventos.background = resources.getDrawable(R.drawable.tab_selected_bg, null)
+        }
+    }
+    private fun cargarEventos() {
+        val token = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)?.getString("token", null) ?: return
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.eventosService.getEventos("Bearer $token")
+
+                if (!isAdded || context == null) return@launch
+
+                if (response.isSuccessful) {
+                    val eventos = response.body()?.eventos ?: emptyList()
+                    Log.d("PERFIL_EVENTOS", "Total eventos recibidos: ${eventos.size}")
+                    
+                    // Filtrar solo los eventos donde el usuario está registrado/vinculado
+                    val eventosVinculados = eventos.filter { it.usuarioRegistrado  == true}
+                    Log.d("PERFIL_EVENTOS", "Eventos vinculados (usuarioRegistrado=true): ${eventosVinculados.size}")
+                    
+                    // Si no hay eventos vinculados, mostrar todos los eventos como fallback
+                    val eventosAMostrar = if (eventosVinculados.isNotEmpty()) eventosVinculados else eventos
+                    Log.d("PERFIL_EVENTOS", "Eventos a mostrar: ${eventosAMostrar.size}")
+
+                    // Crear/adaptar el adapter de eventos
+                    eventosAdapter = EventosAdapter(eventosAMostrar) { evento ->
+                        val intent = Intent(activity, EventoDetalleActivity::class.java)
+                        intent.putExtra("EVENTO_EXTRA", evento)
+                        startActivity(intent)
+                    }
+
+                    recyclerView.adapter = eventosAdapter
+                    Log.d("PERFIL_EVENTOS", "Adapter establecido en RecyclerView")
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e("PERFIL_EVENTOS", "Error en respuesta: $errorBody")
+                    if (isAdded) Toast.makeText(context, "Error al cargar eventos", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("PERFIL_EVENTOS", "Excepción: ${e.message}", e)
+                if (isAdded) Toast.makeText(context, "Error de red al cargar eventos: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+    }
+
+
+    
 }
