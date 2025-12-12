@@ -267,7 +267,7 @@ class PerfilFragment : Fragment() {
                     Log.d("PERFIL_EVENTOS", "Total eventos recibidos: ${eventos.size}")
                     
                     // Filtrar solo los eventos donde el usuario está registrado/vinculado
-                    val eventosVinculados = eventos.filter { it.usuarioRegistrado }
+                    val eventosVinculados = eventos.filter { it.usuarioRegistrado  == true}
                     Log.d("PERFIL_EVENTOS", "Eventos vinculados (usuarioRegistrado=true): ${eventosVinculados.size}")
                     
                     // Si no hay eventos vinculados, mostrar todos los eventos como fallback
