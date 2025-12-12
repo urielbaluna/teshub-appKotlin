@@ -2,58 +2,76 @@ package com.example.teshub_v1.ui.eventos
 
 import android.app.Activity
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
-import android.os.Build
+import android.net.Uri
 import android.os.Bundle
-import android.util.Log
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
+import android.view.View
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
+import com.example.teshub_v1.BuildConfig
 import com.example.teshub_v1.R
-import com.example.teshub_v1.data.model.EditarEventoRequest
 import com.example.teshub_v1.data.model.Evento
 import com.example.teshub_v1.data.network.RetrofitClient
 import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.timepicker.MaterialTimePicker
-import com.google.android.material.timepicker.TimeFormat
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.ParseException
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
+import java.util.*
 
 class EditarEventoActivity : AppCompatActivity() {
 
-    private lateinit var etTitulo: TextInputEditText
-    private lateinit var etOrganizadores: TextInputEditText
-    private lateinit var etDescripcion: TextInputEditText
-    private lateinit var etCupoMaximo: TextInputEditText
-    private lateinit var etFecha: TextInputEditText
-    private lateinit var btnSeleccionarUbicacion: Button
-    private lateinit var tvCoordenadas: TextView
-    private lateinit var btnGuardarCambios: Button
-
-    private lateinit var eventoActual: Evento
-    private val fechaHoraSeleccionada = Calendar.getInstance()
+    private var eventoId: Int = 0
+    private var uriNuevaFoto: Uri? = null
     private var latitudSeleccionada: Double? = null
     private var longitudSeleccionada: Double? = null
+    private var organizadoresOriginales: String = ""
 
-    private val locationPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        result ->
+    // Vistas
+    private lateinit var ivPreview: ImageView
+    private lateinit var etTitulo: TextInputEditText
+    private lateinit var etDescripcion: TextInputEditText
+    private lateinit var etUbicacionNombre: TextInputEditText
+    private lateinit var etCupo: TextInputEditText
+    private lateinit var etTags: TextInputEditText
+    private lateinit var etFecha: TextInputEditText
+    private lateinit var etHora: TextInputEditText
+    private lateinit var tvCoordenadas: TextView
+    private lateinit var btnGuardar: Button
+    private lateinit var spinnerCategoria: Spinner
+
+    private val calendar = Calendar.getInstance()
+
+    // Selector de Imagen
+    private val selectorFoto = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            uriNuevaFoto = it
+            ivPreview.setImageURI(it)
+            ivPreview.setPadding(0, 0, 0, 0)
+            ivPreview.imageTintList = null
+        }
+    }
+
+    // Selector de Mapa
+    private val selectorMapa = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val data = result.data
-            latitudSeleccionada = data?.getDoubleExtra("latitud", 0.0)
-            longitudSeleccionada = data?.getDoubleExtra("longitud", 0.0)
-            tvCoordenadas.text = String.format("Lat: %.4f, Lng: %.4f", latitudSeleccionada, longitudSeleccionada)
+            val lat = result.data?.getDoubleExtra("latitud", 0.0)
+            val lng = result.data?.getDoubleExtra("longitud", 0.0)
+            if (lat != null && lng != null && lat != 0.0) {
+                latitudSeleccionada = lat
+                longitudSeleccionada = lng
+                tvCoordenadas.text = "Nueva ubicación: $lat, $lng"
+            }
         }
     }
 
@@ -61,184 +79,220 @@ class EditarEventoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_editar_evento)
 
-        val eventoRecibido = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableExtra("EVENTO_EXTRA", Evento::class.java)
-        } else {
-            @Suppress("DEPRECATION") intent.getParcelableExtra<Evento>("EVENTO_EXTRA")
-        }
-
-        if (eventoRecibido == null) {
-            Log.e("EditarEventoActivity", "No se recibió el evento para editar.")
-            Toast.makeText(this, "Error: No se pudo cargar el evento.", Toast.LENGTH_LONG).show()
+        eventoId = intent.getIntExtra("evento_id", 0)
+        if (eventoId == 0) {
+            Toast.makeText(this, "Error de evento", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
-        eventoActual = eventoRecibido
 
-        setupViews()
-        populateViews()
-
-        etFecha.setOnClickListener { mostrarDatePicker() }
-        btnSeleccionarUbicacion.setOnClickListener { locationPickerLauncher.launch(Intent(this, SeleccionarUbicacionActivity::class.java)) }
-        btnGuardarCambios.setOnClickListener { guardarCambios() }
+        initViews()
+        cargarDatosEvento()
     }
 
-    private fun setupViews() {
-        etTitulo = findViewById(R.id.etTituloEvento)
-        etOrganizadores = findViewById(R.id.etOrganizadoresEvento)
-        etDescripcion = findViewById(R.id.etDescripcionEvento)
-        etCupoMaximo = findViewById(R.id.etCupoMaximo)
-        etFecha = findViewById(R.id.etFechaEvento)
-        btnSeleccionarUbicacion = findViewById(R.id.btnSeleccionarUbicacion)
-        tvCoordenadas = findViewById(R.id.tvCoordenadasSeleccionadas)
-        btnGuardarCambios = findViewById(R.id.btnGuardarCambios)
-    }
+    private fun initViews() {
+        ivPreview = findViewById(R.id.iv_evento_preview)
+        etTitulo = findViewById(R.id.et_titulo)
+        etDescripcion = findViewById(R.id.et_descripcion)
+        etUbicacionNombre = findViewById(R.id.et_ubicacion_nombre)
+        etCupo = findViewById(R.id.et_cupo)
+        etTags = findViewById(R.id.et_tags)
+        etFecha = findViewById(R.id.et_fecha)
+        etHora = findViewById(R.id.et_hora)
+        tvCoordenadas = findViewById(R.id.tv_coordenadas)
+        btnGuardar = findViewById(R.id.btn_guardar_cambios)
+        spinnerCategoria = findViewById(R.id.spinner_categoria)
 
-    private fun populateViews() {
-        etTitulo.setText(eventoActual.titulo)
-        etDescripcion.setText(eventoActual.descripcion)
-        etOrganizadores.setText(eventoActual.organizadores?.joinToString(", ") { it.matricula } ?: "")
-        etCupoMaximo.setText(eventoActual.cupoMaximo?.toString() ?: "")
+        val categorias = arrayOf("Conferencia", "Workshop", "Seminario", "Simposio", "Cultural", "Otro")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categorias)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerCategoria.adapter = adapter
 
-        // Cargar ubicación desde el objeto ubicacion
-        eventoActual.ubicacion?.let {
-            latitudSeleccionada = it.latitud
-            longitudSeleccionada = it.longitud
-            tvCoordenadas.text = String.format("Lat: %.4f, Lng: %.4f", latitudSeleccionada, longitudSeleccionada)
-        } ?: run {
-            // Si no hay objeto ubicacion, intentar usar las propiedades directas
-            latitudSeleccionada = eventoActual.latitud?.toDoubleOrNull()
-            longitudSeleccionada = eventoActual.longitud?.toDoubleOrNull()
-            if (latitudSeleccionada != null && longitudSeleccionada != null) {
-                tvCoordenadas.text = String.format("Lat: %.4f, Lng: %.4f", latitudSeleccionada, longitudSeleccionada)
-            } else {
-                tvCoordenadas.text = "Ubicación no disponible"
-            }
+        findViewById<View>(R.id.btn_cambiar_foto).setOnClickListener { selectorFoto.launch("image/*") }
+
+        findViewById<Button>(R.id.btn_seleccionar_mapa).setOnClickListener {
+            val intent = Intent(this, SeleccionarUbicacionActivity::class.java)
+            intent.putExtra("lat_inicial", latitudSeleccionada)
+            intent.putExtra("lng_inicial", longitudSeleccionada)
+            selectorMapa.launch(intent)
         }
 
-        eventoActual.fecha?.let { dateString ->
-            var parsedDate: Date? = null
+        etFecha.setOnClickListener { mostrarDatePicker() }
+        etHora.setOnClickListener { mostrarTimePicker() }
+
+        btnGuardar.setOnClickListener { guardarCambios() }
+    }
+
+    private fun cargarDatosEvento() {
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", null) ?: return
+
+        CoroutineScope(Dispatchers.Main).launch {
             try {
-                val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
-                parsedDate = parser.parse(dateString)
-            } catch (e: ParseException) {
-                try {
-                    val fallbackParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-                    fallbackParser.timeZone = TimeZone.getTimeZone("UTC")
-                    parsedDate = fallbackParser.parse(dateString)
-                } catch (e2: ParseException) {
-                    Log.e("EditarEventoActivity", "No se pudo parsear la fecha: '$dateString'", e2)
+                val response = withContext(Dispatchers.IO) {
+                    RetrofitClient.eventosService.getEvento(eventoId, "Bearer $token")
+                }
+
+                if (response.isSuccessful && response.body() != null) {
+                    // CORRECCIÓN AQUÍ: Extraemos el objeto .evento del wrapper
+                    llenarFormulario(response.body()!!.evento)
+                } else {
+                    Toast.makeText(this@EditarEventoActivity, "Error al cargar datos", Toast.LENGTH_SHORT).show()
+                    finish()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@EditarEventoActivity, "Error de red", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun llenarFormulario(evento: Evento) {
+        etTitulo.setText(evento.titulo)
+        etDescripcion.setText(evento.descripcion)
+        etUbicacionNombre.setText(evento.ubicacionNombre)
+        etCupo.setText(evento.cupoMaximo.toString())
+        etTags.setText(evento.tags?.joinToString(", ") ?: "")
+
+        organizadoresOriginales = evento.organizadores.joinToString(",") { it.matricula }
+
+        latitudSeleccionada = evento.ubicacionObj?.latitud
+        longitudSeleccionada = evento.ubicacionObj?.longitud
+        tvCoordenadas.text = "Ubicación actual: $latitudSeleccionada, $longitudSeleccionada"
+
+        val catAdapter = spinnerCategoria.adapter as ArrayAdapter<String>
+        val posicion = catAdapter.getPosition(evento.categoria)
+        if (posicion >= 0) spinnerCategoria.setSelection(posicion)
+
+        try {
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.000'Z'", Locale.getDefault())
+            val date = inputFormat.parse(evento.fecha)
+            if (date != null) {
+                calendar.time = date
+                etFecha.setText(SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(date))
+                etHora.setText(SimpleDateFormat("HH:mm", Locale.getDefault()).format(date))
+            }
+        } catch (e: Exception) {
+            etFecha.setText(evento.fecha)
+        }
+
+        if (!evento.urlFoto.isNullOrEmpty()) {
+            val fullUrl = "${BuildConfig.API_BASE_URL}${evento.urlFoto}"
+            Glide.with(this)
+                .load(fullUrl)
+                .placeholder(R.drawable.ic_image)
+                .into(ivPreview)
+            ivPreview.setPadding(0, 0, 0, 0)
+            ivPreview.imageTintList = null
+        }
+    }
+
+    private fun guardarCambios() {
+        val titulo = etTitulo.text.toString().trim()
+        val desc = etDescripcion.text.toString().trim()
+        val ubiNombre = etUbicacionNombre.text.toString().trim()
+        val cupo = etCupo.text.toString().trim()
+        val tags = etTags.text.toString().trim()
+        val cat = spinnerCategoria.selectedItem.toString()
+        val fechaStr = etFecha.text.toString()
+        val horaStr = etHora.text.toString()
+
+        if (titulo.isEmpty() || desc.isEmpty()) {
+            Toast.makeText(this, "Título y descripción requeridos", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val fechaFinal = formatearFechaMySQL(fechaStr, horaStr)
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", null) ?: return
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Convertir campos a RequestBody
+                val pTitulo = titulo.toRequestBody("text/plain".toMediaTypeOrNull())
+                val pDesc = desc.toRequestBody("text/plain".toMediaTypeOrNull())
+                val pFecha = fechaFinal.toRequestBody("text/plain".toMediaTypeOrNull())
+                val pLat = (latitudSeleccionada ?: 0.0).toString().toRequestBody("text/plain".toMediaTypeOrNull())
+                val pLng = (longitudSeleccionada ?: 0.0).toString().toRequestBody("text/plain".toMediaTypeOrNull())
+                val pOrgs = organizadoresOriginales.toRequestBody("text/plain".toMediaTypeOrNull())
+                val pCupo = (cupo.toIntOrNull() ?: 50).toString().toRequestBody("text/plain".toMediaTypeOrNull())
+                val pCat = cat.toRequestBody("text/plain".toMediaTypeOrNull())
+                val pUbiNom = ubiNombre.toRequestBody("text/plain".toMediaTypeOrNull())
+                val pTags = tags.toRequestBody("text/plain".toMediaTypeOrNull())
+
+                // Foto opcional
+                var pFoto: MultipartBody.Part? = null
+                uriNuevaFoto?.let { uri ->
+                    val file = uriToFile(uri, "evento_update")
+                    val reqFile = file.readBytes().toRequestBody("image/jpeg".toMediaTypeOrNull())
+                    pFoto = MultipartBody.Part.createFormData("foto", file.name, reqFile)
+                }
+
+                // Llamada con Multipart
+                val response = RetrofitClient.eventosService.actualizarEvento(
+                    eventoId,
+                    "Bearer $token",
+                    pTitulo, pDesc, pFecha, pLat, pLng, pOrgs, pCupo, pCat, pUbiNom, pTags, pFoto
+                )
+
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@EditarEventoActivity, "Evento actualizado", Toast.LENGTH_SHORT).show()
+                        finish()
+                    } else {
+                        val errorMsg = response.errorBody()?.string() ?: "Error desconocido"
+                        Toast.makeText(this@EditarEventoActivity, "Error: $errorMsg", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@EditarEventoActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
-
-            if (parsedDate != null) {
-                fechaHoraSeleccionada.time = parsedDate
-                val formatoUsuario = SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault())
-                etFecha.setText(formatoUsuario.format(fechaHoraSeleccionada.time))
-            } else {
-                etFecha.setText(dateString) // Muestra la fecha original si no se pudo parsear
-            }
-        } ?: run {
-            etFecha.setText("Fecha no especificada")
         }
     }
 
     private fun mostrarDatePicker() {
-        val calendario = fechaHoraSeleccionada
-        val datePickerDialog = DatePickerDialog(this, {
-            _, year, month, dayOfMonth ->
-            fechaHoraSeleccionada.set(Calendar.YEAR, year)
-            fechaHoraSeleccionada.set(Calendar.MONTH, month)
-            fechaHoraSeleccionada.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-            mostrarTimePicker()
-        }, calendario.get(Calendar.YEAR), calendario.get(Calendar.MONTH), calendario.get(Calendar.DAY_OF_MONTH))
-        datePickerDialog.show()
+        val dateSetListener = DatePickerDialog.OnDateSetListener { _, year, month, day ->
+            calendar.set(Calendar.YEAR, year)
+            calendar.set(Calendar.MONTH, month)
+            calendar.set(Calendar.DAY_OF_MONTH, day)
+            val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            etFecha.setText(format.format(calendar.time))
+        }
+        DatePickerDialog(
+            this, dateSetListener,
+            calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
     }
 
     private fun mostrarTimePicker() {
-        val picker = MaterialTimePicker.Builder()
-            .setTimeFormat(TimeFormat.CLOCK_12H)
-            .setHour(fechaHoraSeleccionada.get(Calendar.HOUR_OF_DAY))
-            .setMinute(fechaHoraSeleccionada.get(Calendar.MINUTE))
-            .setTitleText("Selecciona la hora del evento")
-            .build()
-
-        picker.addOnPositiveButtonClickListener {
-            fechaHoraSeleccionada.set(Calendar.HOUR_OF_DAY, picker.hour)
-            fechaHoraSeleccionada.set(Calendar.MINUTE, picker.minute)
-
-            val formatoUsuario = SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault())
-            etFecha.setText(formatoUsuario.format(fechaHoraSeleccionada.time))
+        val timeSetListener = TimePickerDialog.OnTimeSetListener { _, hour, minute ->
+            calendar.set(Calendar.HOUR_OF_DAY, hour)
+            calendar.set(Calendar.MINUTE, minute)
+            val format = SimpleDateFormat("HH:mm", Locale.getDefault())
+            etHora.setText(format.format(calendar.time))
         }
-        picker.show(supportFragmentManager, "TimePicker")
+        TimePickerDialog(
+            this, timeSetListener,
+            calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true
+        ).show()
     }
 
-    private fun guardarCambios() {
-        val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
-        val token = sharedPref.getString("token", null)
-
-        if (token == null) {
-            Toast.makeText(this, "Error de autenticación.", Toast.LENGTH_SHORT).show()
-            return
+    private fun formatearFechaMySQL(fecha: String, hora: String): String {
+        return try {
+            val parts = fecha.split("/")
+            "${parts[2]}-${parts[1]}-${parts[0]} $hora:00"
+        } catch (e: Exception) {
+            fecha
         }
+    }
 
-        if (latitudSeleccionada == null || longitudSeleccionada == null) {
-            Toast.makeText(this, "Por favor, selecciona una ubicación.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        
-        eventoActual.id?.let { event_Id ->
-            lifecycleScope.launch {
-                try {
-                    val formatoISO = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.getDefault())
-                    val fechaISO = formatoISO.format(fechaHoraSeleccionada.time)
-
-                    val eventoRequest = EditarEventoRequest(
-                        titulo = etTitulo.text.toString(),
-                        descripcion = etDescripcion.text.toString(),
-                        fecha = fechaISO,
-                        latitud = latitudSeleccionada!!,
-                        longitud = longitudSeleccionada!!,
-                        organizadores = etOrganizadores.text.toString(),
-                        cupo_maximo = etCupoMaximo.text.toString().toIntOrNull()
-                    )
-
-                    val response = RetrofitClient.eventosService.actualizarEvento(
-                        id = event_Id,
-                        token = "Bearer $token",
-                        evento = eventoRequest
-                    )
-
-                    if (response.isSuccessful) {
-                        val eventoActualizado = eventoActual.copy(
-                            titulo = etTitulo.text.toString(),
-                            descripcion = etDescripcion.text.toString(),
-                            fecha = fechaISO,
-                            latitud = latitudSeleccionada!!.toString(),
-                            longitud = longitudSeleccionada!!.toString(),
-                            cupoMaximo = etCupoMaximo.text.toString().toIntOrNull() ?: eventoActual.cupoMaximo
-                        )
-
-                        val intentResult = Intent()
-                        intentResult.putExtra("EVENTO_ACTUALIZADO", eventoActualizado)
-                        setResult(Activity.RESULT_OK, intentResult)
-                        finish()
-                    } else {
-                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
-                            val errorBody = withContext(Dispatchers.IO) {
-                                response.errorBody()?.string()
-                            }
-                            Log.e("EditarEventoActivity", "Error al actualizar: $errorBody")
-                            Toast.makeText(this@EditarEventoActivity, "Error: $errorBody", Toast.LENGTH_LONG).show()
-                        }
-                    }
-                } catch (e: Exception) {
-                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
-                        Log.e("EditarEventoActivity", "Excepción al actualizar: ${e.message}")
-                        Toast.makeText(this@EditarEventoActivity, "Excepción: ${e.message}", Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-        }
+    private fun uriToFile(uri: Uri, nombreBase: String): File {
+        val inputStream = contentResolver.openInputStream(uri)!!
+        val safeName = nombreBase.replace("[^a-zA-Z0-9.-]".toRegex(), "_")
+        val tempFile = File(cacheDir, "${safeName}_${System.currentTimeMillis()}.jpg")
+        val outputStream = FileOutputStream(tempFile)
+        inputStream.copyTo(outputStream)
+        inputStream.close()
+        outputStream.close()
+        return tempFile
     }
 }
