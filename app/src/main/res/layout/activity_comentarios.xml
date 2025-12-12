@@ -67,7 +67,7 @@
                 android:src="@drawable/ic_comment"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 app:tint="#2DA036"
-                android:contentDescription="Enviar comentariooo"/>
+                android:contentDescription="Enviar comentario"/>
         </LinearLayout>
     </LinearLayout>
 
