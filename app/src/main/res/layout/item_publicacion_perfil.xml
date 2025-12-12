@@ -50,14 +50,68 @@
             android:id="@+id/layout_calificacion_fecha"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:layout_below="@+id/tvHaceCuanto"
-            android:layout_marginTop="8dp"
-            android:gravity="center_vertical">
+            android:layout_marginTop="8dp">
 
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/cg_etiquetas_item"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:chipSpacingHorizontal="4dp"
+                app:singleSelection="false"
+                android:layout_marginBottom="4dp"/>
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_star"
+                    app:tint="#FFC107"/>
+                <TextView
+                    android:id="@+id/tv_item_rating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0.0"
+                    android:textSize="12sp"
+                    android:textColor="@color/black"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="16dp"/>
 
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_visibility"
+                    app:tint="#757575"/>
+                <TextView
+                    android:id="@+id/tv_item_views"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="12sp"
+                    android:textColor="@color/black"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="16dp"/>
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_download"
+                    app:tint="#757575"/>
+                <TextView
+                    android:id="@+id/tv_item_downloads"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="12sp"
+                    android:textColor="@color/black"
+                    android:layout_marginStart="4dp"/>
+            </LinearLayout>
         </LinearLayout>
 
     </RelativeLayout>
