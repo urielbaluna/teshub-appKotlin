@@ -121,3 +121,100 @@ class PublicacionesFragment : Fragment() {
         }
     }
 }
+
+class PublicacionesFragment : Fragment() {
+
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: PublicacionesAdapter
+    private lateinit var progressBar: ProgressBar
+    private lateinit var tvEmpty: TextView
+
+    private var allPublicaciones: List<Publicacion> = emptyList()
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_publicaciones, container, false)
+
+        recyclerView = view.findViewById(R.id.rv_publicaciones)
+        progressBar = view.findViewById(R.id.progress_bar)
+        tvEmpty = view.findViewById(R.id.tv_empty_view)
+
+        recyclerView.layoutManager = LinearLayoutManager(context)
+
+        adapter = PublicacionesAdapter(mutableListOf()) { publicacion ->
+            val intent = Intent(context, PublicacionDetalleActivity::class.java)
+            intent.putExtra("id_publi", publicacion.id)
+            intent.putExtra("modo_asesor", false) // Es visualización normal
+            startActivity(intent)
+        }
+        recyclerView.adapter = adapter
+
+        cargarPublicaciones()
+
+        return view
+    }
+
+    private fun cargarPublicaciones() {
+        val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
+        val token = sharedPref?.getString("token", null)
+
+        if (token == null) {
+            if (isAdded && context != null) {
+                Toast.makeText(context, "Error de sesión", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+
+        progressBar.visibility = View.VISIBLE
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.publicacionesService.listarPublicaciones("Bearer $token")
+
+                if (!isAdded || context == null) return@launch
+
+                progressBar.visibility = View.GONE
+
+                if (response.publicaciones.isNotEmpty()) {
+                    allPublicaciones = response.publicaciones
+                    adapter.updateList(allPublicaciones)
+                    tvEmpty.visibility = View.GONE
+                    recyclerView.visibility = View.VISIBLE
+                } else {
+                    tvEmpty.visibility = View.VISIBLE
+                    recyclerView.visibility = View.GONE
+                }
+            } catch (e: Exception) {
+                if (!isAdded || context == null) return@launch
+
+                progressBar.visibility = View.GONE
+                Log.e("PublicacionesFragment", "Error: ${e.message}")
+                Toast.makeText(context, "Error al cargar: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    fun filter(query: String) {
+        val filteredList = if (query.isEmpty()) {
+            allPublicaciones
+        } else {
+            val lowerCaseQuery = query.lowercase()
+            allPublicaciones.filter {
+                it.titulo.lowercase().contains(lowerCaseQuery) ||
+                        it.descripcion.lowercase().contains(lowerCaseQuery)
+            }
+        }
+        adapter.updateList(filteredList)
+
+        if (filteredList.isEmpty()) {
+            tvEmpty.text = if (query.isEmpty()) "No hay publicaciones disponibles" else "No se encontraron resultados"
+            tvEmpty.visibility = View.VISIBLE
+            recyclerView.visibility = View.GONE
+        } else {
+            tvEmpty.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
+        }
+    }
+}
