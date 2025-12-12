@@ -1,7 +1,8 @@
 package com.example.teshub_v1.data.network
 
 import com.example.teshub_v1.data.model.CrearEventoResponse
-import com.example.teshub_v1.data.model.EventoDetalleResponse
+import com.example.teshub_v1.data.model.EditarEventoRequest
+import com.example.teshub_v1.data.model.Evento
 import com.example.teshub_v1.data.model.EventosResponse
 import com.example.teshub_v1.data.model.GeneralResponse
 import com.example.teshub_v1.data.model.RegistroEventoResponse
@@ -13,17 +14,13 @@ import retrofit2.http.*
 interface EventosService {
 
     @GET("api/eventos")
-    suspend fun getEventos(
-        @Header("Authorization") token: String,
-        @Query("categoria") categoria: String? = null,
-        @Query("busqueda") busqueda: String? = null
-    ): Response<EventosResponse>
+    suspend fun getEventos(@Header("Authorization") token: String): Response<EventosResponse>
 
     @GET("api/eventos/{id}")
     suspend fun getEvento(
         @Path("id") id: Int,
         @Header("Authorization") token: String
-    ): Response<EventoDetalleResponse>
+    ): Response<Evento>
 
     @Multipart
     @POST("api/eventos")
@@ -34,11 +31,9 @@ interface EventosService {
         @Part("fecha") fecha: RequestBody,
         @Part("latitud") latitud: RequestBody,
         @Part("longitud") longitud: RequestBody,
+        // --- CORRECCIÓN: Usar el nombre de campo correcto ---
         @Part("organizadores_matriculas") organizadores: RequestBody,
         @Part("cupo_maximo") cupoMaximo: RequestBody,
-        @Part("categoria") categoria: RequestBody,
-        @Part("ubicacion_nombre") ubicacionNombre: RequestBody,
-        @Part("tags") tags: RequestBody,
         @Part foto: MultipartBody.Part?
     ): Response<CrearEventoResponse>
 
@@ -48,22 +43,11 @@ interface EventosService {
         @Header("Authorization") token: String
     ): Response<CrearEventoResponse>
 
-    @Multipart
     @PUT("api/eventos/{id}")
     suspend fun actualizarEvento(
         @Path("id") id: Int,
         @Header("Authorization") token: String,
-        @Part("titulo") titulo: RequestBody?,
-        @Part("descripcion") descripcion: RequestBody?,
-        @Part("fecha") fecha: RequestBody?,
-        @Part("latitud") latitud: RequestBody?,
-        @Part("longitud") longitud: RequestBody?,
-        @Part("organizadores_matriculas") organizadores: RequestBody?,
-        @Part("cupo_maximo") cupoMaximo: RequestBody?,
-        @Part("categoria") categoria: RequestBody?,
-        @Part("ubicacion_nombre") ubicacionNombre: RequestBody?,
-        @Part("tags") tags: RequestBody?,
-        @Part foto: MultipartBody.Part?
+        @Body evento: EditarEventoRequest
     ): Response<CrearEventoResponse>
 
     @POST("api/eventos/{id}/registrarse")
