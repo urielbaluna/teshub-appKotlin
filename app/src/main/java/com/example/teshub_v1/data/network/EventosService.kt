@@ -4,7 +4,6 @@ import com.example.teshub_v1.data.model.CrearEventoResponse
 import com.example.teshub_v1.data.model.EditarEventoRequest
 import com.example.teshub_v1.data.model.Evento
 import com.example.teshub_v1.data.model.EventosResponse
-import com.example.teshub_v1.data.model.GeneralResponse
 import com.example.teshub_v1.data.model.RegistroEventoResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -61,27 +60,4 @@ interface EventosService {
         @Path("id") id: Int,
         @Header("Authorization") token: String
     ): Response<CrearEventoResponse>
-}
-
-interface RevisionesService {
-
-    // (Asesor) Ver qué tesis tengo que revisar
-    @GET("api/revisiones/pendientes")
-    suspend fun obtenerPendientes(
-        @Header("Authorization") token: String
-    ): Response<PendientesResponse>
-
-    // (Asesor) Enviar veredicto
-    @POST("api/revisiones/revisar")
-    suspend fun revisarPublicacion(
-        @Header("Authorization") token: String,
-        @Body body: RevisionRequest
-    ): Response<GeneralResponse>
-
-    // (Ambos) Ver historial de cambios
-    @GET("api/revisiones/historial/{id_publi}")
-    suspend fun obtenerHistorial(
-        @Header("Authorization") token: String,
-        @Path("id_publi") idPubli: Int
-    ): Response<HistorialResponse>
 }
