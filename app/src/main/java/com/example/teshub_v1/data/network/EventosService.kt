@@ -4,6 +4,7 @@ import com.example.teshub_v1.data.model.CrearEventoResponse
 import com.example.teshub_v1.data.model.EditarEventoRequest
 import com.example.teshub_v1.data.model.Evento
 import com.example.teshub_v1.data.model.EventosResponse
+import com.example.teshub_v1.data.model.GeneralResponse
 import com.example.teshub_v1.data.model.RegistroEventoResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -30,6 +31,7 @@ interface EventosService {
         @Part("fecha") fecha: RequestBody,
         @Part("latitud") latitud: RequestBody,
         @Part("longitud") longitud: RequestBody,
+        // --- CORRECCIÓN: Usar el nombre de campo correcto ---
         @Part("organizadores_matriculas") organizadores: RequestBody,
         @Part("cupo_maximo") cupoMaximo: RequestBody,
         @Part foto: MultipartBody.Part?
@@ -59,16 +61,27 @@ interface EventosService {
         @Path("id") id: Int,
         @Header("Authorization") token: String
     ): Response<CrearEventoResponse>
-    @GET("api/buscar/eventos")
-    suspend fun buscarEventos(
+}
+
+interface RevisionesService {
+
+    // (Asesor) Ver qué tesis tengo que revisar
+    @GET("api/revisiones/pendientes")
+    suspend fun obtenerPendientes(
+        @Header("Authorization") token: String
+    ): Response<PendientesResponse>
+
+    // (Asesor) Enviar veredicto
+    @POST("api/revisiones/revisar")
+    suspend fun revisarPublicacion(
         @Header("Authorization") token: String,
-        @Query("palabra") palabra: String?,
-        @Query("lat") latitud: Double?,
-        @Query("lng") longitud: Double?,
-        @Query("radioKm") radioKm: Int?,
-        @Query("fecha_inicio") fechaInicio: String?,
-        @Query("fecha_fin") fechaFin: String?
-    ): Response<EventosResponse>
+        @Body body: RevisionRequest
+    ): Response<GeneralResponse>
 
-
+    // (Ambos) Ver historial de cambios
+    @GET("api/revisiones/historial/{id_publi}")
+    suspend fun obtenerHistorial(
+        @Header("Authorization") token: String,
+        @Path("id_publi") idPubli: Int
+    ): Response<HistorialResponse>
 }

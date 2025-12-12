@@ -408,23 +408,27 @@ class PerfilFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                // 1. Llamamos al endpoint exclusivo de "Mis Eventos"
-                // Asegúrate de que 'obtenerMisEventos' devuelva Response<UsuarioEventosResponse>
-                // O usa 'obtenerUsuarioConEventos' si ese es el que implementaste en el backend
-                val response = RetrofitClient.usuariosService.obtenerMisEventos("Bearer $token")
+                val response = RetrofitClient.eventosService.getEventos("Bearer $token")
 
-                if (response.isSuccessful && response.body() != null) {
-                    val listaEventos = response.body()!!.eventos
+                if (!isAdded || context == null) return@launch
 
-                    // 2. ACTUALIZAMOS EL ADAPTADOR EXISTENTE
-                    // (No creamos uno nuevo, usamos el que ya está conectado al RecyclerView)
-                    adapterEventos.updateList(listaEventos)
+                if (response.isSuccessful) {
+                    val eventos = response.body()?.eventos ?: emptyList()
+                    Log.d("PERFIL_EVENTOS", "Total eventos recibidos: ${eventos.size}")
+                    
+                    // Filtrar solo los eventos donde el usuario está registrado/vinculado
+                    val eventosVinculados = eventos.filter { it.usuarioRegistrado  == true}
+                    Log.d("PERFIL_EVENTOS", "Eventos vinculados (usuarioRegistrado=true): ${eventosVinculados.size}")
+                    
+                    // Si no hay eventos vinculados, mostrar todos los eventos como fallback
+                    val eventosAMostrar = if (eventosVinculados.isNotEmpty()) eventosVinculados else eventos
+                    Log.d("PERFIL_EVENTOS", "Eventos a mostrar: ${eventosAMostrar.size}")
 
-                    // 3. Manejo de estado vacío (Opcional)
-                    if (listaEventos.isEmpty()) {
-                        // Si tienes un TextView para mensaje vacío, úsalo aquí
-                        // tvEmptyState.text = "No tienes eventos aún"
-                        // tvEmptyState.visibility = View.VISIBLE
+                    // Crear/adaptar el adapter de eventos
+                    eventosAdapter = EventosAdapter(eventosAMostrar) { evento ->
+                        val intent = Intent(activity, EventoDetalleActivity::class.java)
+                        intent.putExtra("EVENTO_EXTRA", evento)
+                        startActivity(intent)
                     }
                 } else {
                     Log.e("PERFIL", "Error respuesta eventos: ${response.code()}")
