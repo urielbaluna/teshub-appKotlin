@@ -1,54 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#F5F5F5"
     tools:context=".ui.eventos.EventosFragment">
 
-    <androidx.appcompat.widget.SearchView
-        android:id="@+id/search_view_eventos"
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/tvEmptyState"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_margin="8dp"
-        android:background="@drawable/rounded_gray_bg"
-        app:queryHint="Buscar eventos" />
+        android:text="No hay eventos disponibles"
+        android:textSize="16sp"
+        android:textColor="#757575"
+        android:layout_gravity="center"
+        android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvEventos"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@+id/search_view_eventos"
-        android:padding="8dp"
+        android:clipToPadding="false"
+        android:paddingBottom="80dp"
         tools:listitem="@layout/list_item_evento" />
-
-    <TextView
-        android:id="@+id/tv_empty_view_eventos"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:text="No hay eventos disponibles" 
-        android:visibility="gone"
-        tools:visibility="visible"/>
 
     <ProgressBar
         android:id="@+id/progressBarEventos"
         style="?android:attr/progressBarStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
+        android:layout_gravity="center"
         android:visibility="gone" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_event"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentBottom="true"
+        android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:src="@drawable/ic_add"
         app:backgroundTint="#2DA036"
-        app:tint="@android:color/white" />
+        app:tint="@android:color/white"
+        android:contentDescription="Crear Evento"/>
 
-</RelativeLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
