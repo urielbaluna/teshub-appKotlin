@@ -1,8 +1,7 @@
 package com.example.teshub_v1.data.network
 
 import com.example.teshub_v1.data.model.CrearEventoResponse
-import com.example.teshub_v1.data.model.EditarEventoRequest
-import com.example.teshub_v1.data.model.Evento
+import com.example.teshub_v1.data.model.EventoDetalleResponse
 import com.example.teshub_v1.data.model.EventosResponse
 import com.example.teshub_v1.data.model.RegistroEventoResponse
 import okhttp3.MultipartBody
@@ -13,13 +12,17 @@ import retrofit2.http.*
 interface EventosService {
 
     @GET("api/eventos")
-    suspend fun getEventos(@Header("Authorization") token: String): Response<EventosResponse>
+    suspend fun getEventos(
+        @Header("Authorization") token: String,
+        @Query("categoria") categoria: String? = null,
+        @Query("busqueda") busqueda: String? = null
+    ): Response<EventosResponse>
 
     @GET("api/eventos/{id}")
     suspend fun getEvento(
         @Path("id") id: Int,
         @Header("Authorization") token: String
-    ): Response<Evento>
+    ): Response<EventoDetalleResponse>
 
     @Multipart
     @POST("api/eventos")
@@ -32,6 +35,9 @@ interface EventosService {
         @Part("longitud") longitud: RequestBody,
         @Part("organizadores_matriculas") organizadores: RequestBody,
         @Part("cupo_maximo") cupoMaximo: RequestBody,
+        @Part("categoria") categoria: RequestBody,
+        @Part("ubicacion_nombre") ubicacionNombre: RequestBody,
+        @Part("tags") tags: RequestBody,
         @Part foto: MultipartBody.Part?
     ): Response<CrearEventoResponse>
 
@@ -41,11 +47,22 @@ interface EventosService {
         @Header("Authorization") token: String
     ): Response<CrearEventoResponse>
 
+    @Multipart
     @PUT("api/eventos/{id}")
     suspend fun actualizarEvento(
         @Path("id") id: Int,
         @Header("Authorization") token: String,
-        @Body evento: EditarEventoRequest
+        @Part("titulo") titulo: RequestBody?,
+        @Part("descripcion") descripcion: RequestBody?,
+        @Part("fecha") fecha: RequestBody?,
+        @Part("latitud") latitud: RequestBody?,
+        @Part("longitud") longitud: RequestBody?,
+        @Part("organizadores_matriculas") organizadores: RequestBody?,
+        @Part("cupo_maximo") cupoMaximo: RequestBody?,
+        @Part("categoria") categoria: RequestBody?,
+        @Part("ubicacion_nombre") ubicacionNombre: RequestBody?,
+        @Part("tags") tags: RequestBody?,
+        @Part foto: MultipartBody.Part?
     ): Response<CrearEventoResponse>
 
     @POST("api/eventos/{id}/registrarse")
@@ -59,16 +76,4 @@ interface EventosService {
         @Path("id") id: Int,
         @Header("Authorization") token: String
     ): Response<CrearEventoResponse>
-    @GET("api/buscar/eventos")
-    suspend fun buscarEventos(
-        @Header("Authorization") token: String,
-        @Query("palabra") palabra: String?,
-        @Query("lat") latitud: Double?,
-        @Query("lng") longitud: Double?,
-        @Query("radioKm") radioKm: Int?,
-        @Query("fecha_inicio") fechaInicio: String?,
-        @Query("fecha_fin") fechaFin: String?
-    ): Response<EventosResponse>
-
-
 }
