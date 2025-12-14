@@ -1,6 +1,7 @@
 package com.example.teshub_v1.ui.publicaciones
 
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -10,7 +11,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.RatingBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -18,11 +18,17 @@ import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.teshub_v1.BuildConfig
 import com.example.teshub_v1.R
+import com.example.teshub_v1.data.model.RevisionRequest
+import com.example.teshub_v1.data.model.PublicacionDetalle
 import com.example.teshub_v1.data.network.RetrofitClient
+import com.example.teshub_v1.ui.publicaciones.ComentariosActivity
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.launch
+import android.widget.RatingBar
+import com.example.teshub_v1.data.model.CalificarRequest
+import org.json.JSONObject
 
 class PublicacionDetalleActivity : AppCompatActivity() {
 
@@ -69,7 +75,7 @@ class PublicacionDetalleActivity : AppCompatActivity() {
     }
 
     private fun registrarVistaBackend() {
-        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", "") ?: return
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", "") ?: return
 
         lifecycleScope.launch {
             try {
@@ -82,7 +88,7 @@ class PublicacionDetalleActivity : AppCompatActivity() {
     }
 
     private fun registrarDescargaBackend() {
-        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", "") ?: return
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", "") ?: return
 
         lifecycleScope.launch {
             try {
@@ -147,7 +153,7 @@ class PublicacionDetalleActivity : AppCompatActivity() {
     }
 
     private fun cargarDetalle() {
-        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", null) ?: return
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", null) ?: return
 
         lifecycleScope.launch {
             try {
@@ -158,7 +164,7 @@ class PublicacionDetalleActivity : AppCompatActivity() {
                 val publi = response.publicacion
 
                 // 1. Obtener mi matrícula de la sesión
-                val miMatricula = getSharedPreferences("sesion", MODE_PRIVATE).getString("matricula", "")
+                val miMatricula = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("matricula", "")
 
                 // 2. Comprobar si soy autor (asumiendo que 'detalle.integrantes' es una lista de objetos con 'matricula')
                 // Si tu backend devuelve un flag 'es_autor', úsalo directamente. Si no, iteramos:
@@ -285,7 +291,7 @@ class PublicacionDetalleActivity : AppCompatActivity() {
     }
 
     private fun enviarRevision(estado: String, comentarios: String) {
-        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", null) ?: return
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", null) ?: return
 
         lifecycleScope.launch {
             try {
@@ -305,7 +311,7 @@ class PublicacionDetalleActivity : AppCompatActivity() {
     }
 
     private fun mostrarHistorialRevisiones() {
-        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", null) ?: return
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", null) ?: return
 
         lifecycleScope.launch {
             try {
@@ -344,7 +350,7 @@ class PublicacionDetalleActivity : AppCompatActivity() {
         }
     }
     private fun enviarCalificacion(puntos: Int) {
-        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", "") ?: return
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", "") ?: return
 
         btnCalificar.isEnabled = false
         btnCalificar.text = "..."

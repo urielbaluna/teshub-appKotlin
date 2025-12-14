@@ -1,6 +1,9 @@
 package com.example.teshub_v1.data.network
 
 import com.example.teshub_v1.data.model.GeneralResponse
+import com.example.teshub_v1.data.model.HistorialResponse
+import com.example.teshub_v1.data.model.PendientesResponse
+import com.example.teshub_v1.data.model.RevisionRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET

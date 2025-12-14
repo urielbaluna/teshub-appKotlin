@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center_horizontal"
+    android:gravity="center"
     android:paddingHorizontal="32dp"
     android:background="@color/white"
     tools:context=".ui.auth.MainActivity">
@@ -15,12 +15,10 @@
         android:id="@+id/imageView"
         android:layout_width="260dp"
         android:layout_height="120dp"
-        android:layout_marginTop="50dp"
         android:layout_marginBottom="40dp"
         android:src="@drawable/teshub"
         android:contentDescription="Teshub logo"
         android:adjustViewBounds="true" />
-
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilUsuario"
         android:layout_width="match_parent"
@@ -40,7 +38,7 @@
             android:id="@+id/etUsuario"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="CORREO ELECTRONICO"
+            android:hint="CORREO ELECTRÓNICO"
             android:inputType="textEmailAddress"
             android:background="@null"
             android:padding="16dp"
@@ -51,7 +49,7 @@
         android:id="@+id/tilPassword"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="24dp"
         app:boxBackgroundColor="#E0E0E0"
         app:boxCornerRadiusTopStart="12dp"
         app:boxCornerRadiusTopEnd="12dp"
@@ -85,8 +83,7 @@
         android:textColor="@android:color/white"
         android:backgroundTint="#2DA036"
         android:layout_marginBottom="16dp"
-        android:padding="12dp"
-        android:layout_marginTop="16dp"/>
+        android:padding="12dp"/>
 
     <TextView
         android:id="@+id/tvForgotPassword"
@@ -103,7 +100,6 @@
         android:id="@+id/tvRegistrarse"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:clickable="true"
         android:focusable="true"
         android:text="¿No tienes cuenta? Regístrate"

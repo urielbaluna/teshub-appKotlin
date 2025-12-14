@@ -1,7 +1,6 @@
 package com.example.teshub_v1.ui.publicaciones
 
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
@@ -16,11 +15,9 @@ import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.teshub_v1.BuildConfig
 import com.example.teshub_v1.R
-import com.example.teshub_v1.data.model.EliminarArchivoRequest
 import com.example.teshub_v1.data.network.RetrofitClient
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,178 +27,6 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.FileOutputStream
-
-class CrearPublicacionActivity : AppCompatActivity() {
-
-    private val PICK_FILES_REQUEST = 1001
-    private var selectedFiles: MutableList<Uri> = mutableListOf()
-
-    private lateinit var layoutArchivos: LinearLayout
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_crear_publicacion)
-
-        val etTitulo = findViewById<TextInputEditText>(R.id.et_titulo)
-        val etDescripcion = findViewById<TextInputEditText>(R.id.et_descripcion)
-        val etColaboradores = findViewById<TextInputEditText>(R.id.et_colaboradores)
-        val btnSeleccionarArchivo = findViewById<Button>(R.id.btn_seleccionar_archivo)
-        val btnPublicar = findViewById<Button>(R.id.btn_publicar)
-        layoutArchivos = findViewById(R.id.layout_archivos)
-
-        btnSeleccionarArchivo.setOnClickListener {
-            val intent = Intent(Intent.ACTION_GET_CONTENT)
-            intent.type = "*/*"
-            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-            startActivityForResult(Intent.createChooser(intent, "Seleccionar archivos"), PICK_FILES_REQUEST)
-        }
-
-        btnPublicar.setOnClickListener {
-            val titulo = etTitulo.text.toString().trim()
-            val descripcion = etDescripcion.text.toString().trim()
-            val colaboradores = etColaboradores.text.toString().trim()
-
-            if (titulo.isEmpty() || descripcion.isEmpty()) {
-                Toast.makeText(this, "Título y descripción son obligatorios", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            btnPublicar.isEnabled = false
-            btnPublicar.text = "Publicando..."
-
-            enviarPublicacion(titulo, descripcion, colaboradores)
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == PICK_FILES_REQUEST && resultCode == RESULT_OK) {
-
-            data?.let {
-                if (it.clipData != null) {
-                    for (i in 0 until it.clipData!!.itemCount) {
-                        val uri = it.clipData!!.getItemAt(i).uri
-                        agregarArchivoALista(uri)
-                    }
-                } else if (it.data != null) {
-                    val uri = it.data!!
-                    agregarArchivoALista(uri)
-                }
-            }
-        }
-    }
-
-    private fun agregarArchivoALista(uri: Uri) {
-        if (!selectedFiles.contains(uri)) {
-            selectedFiles.add(uri)
-            val nombre = obtenerNombreReal(uri)
-            val esPDF = nombre.lowercase().endsWith(".pdf")
-            mostrarVistaArchivo(uri, nombre, esPDF)
-        }
-    }
-
-    private fun mostrarVistaArchivo(uri: Uri, nombre: String, esPDF: Boolean) {
-        val inflater = LayoutInflater.from(this)
-        val card = inflater.inflate(R.layout.item_archivo, layoutArchivos, false)
-
-        val txtNombre = card.findViewById<TextView>(R.id.txt_nombre_archivo)
-        val icono = card.findViewById<ImageView>(R.id.icono_archivo)
-        val btnEliminar = card.findViewById<ImageView>(R.id.btn_eliminar_archivo)
-
-        txtNombre.text = nombre
-        icono.setImageResource(if (esPDF) R.drawable.ic_pdf else R.drawable.ic_image)
-
-        btnEliminar.setOnClickListener {
-            selectedFiles.remove(uri)
-            layoutArchivos.removeView(card)
-        }
-
-        layoutArchivos.addView(card)
-    }
-
-    private fun obtenerNombreReal(uri: Uri): String {
-        var fileName = "archivo_desconocido"
-        val cursor = contentResolver.query(uri, null, null, null, null)
-        cursor?.use {
-            if (it.moveToFirst()) {
-                val index = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (index != -1) {
-                    fileName = it.getString(index)
-                }
-            }
-        }
-        return fileName
-    }
-
-    private fun getFileParts(): List<MultipartBody.Part> {
-        val parts = mutableListOf<MultipartBody.Part>()
-
-        for (uri in selectedFiles) {
-            try {
-                val contentResolver = contentResolver
-                val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
-                val fileName = obtenerNombreReal(uri)
-
-                val inputStream = contentResolver.openInputStream(uri) ?: continue
-                val bytes = inputStream.readBytes()
-                inputStream.close()
-
-                val part = MultipartBody.Part.createFormData(
-                    "archivos",
-                    fileName,
-                    bytes.toRequestBody(mimeType.toMediaTypeOrNull())
-                )
-                parts.add(part)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-        return parts
-    }
-
-    private fun enviarPublicacion(titulo: String, descripcion: String, colaboradores: String) {
-        val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
-        val token = sharedPref.getString("token", null)
-
-        if (token == null) {
-            Toast.makeText(this, "Error de sesión", Toast.LENGTH_SHORT).show()
-            finish()
-            return
-        }
-
-        val tituloPart = titulo.toRequestBody("text/plain".toMediaTypeOrNull())
-        val descPart = descripcion.toRequestBody("text/plain".toMediaTypeOrNull())
-        val colabPart = colaboradores.toRequestBody("text/plain".toMediaTypeOrNull())
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val fileParts = getFileParts()
-
-                val response = RetrofitClient.publicacionesService.crearPublicacion(
-                    "Bearer $token",
-                    tituloPart,
-                    descPart,
-                    colabPart,
-                    if (fileParts.isNotEmpty()) fileParts else null
-                )
-
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@CrearPublicacionActivity, "¡Proyecto publicado!", Toast.LENGTH_LONG).show()
-                    finish()
-                }
-
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    // Reactivar botón si falló
-                    findViewById<Button>(R.id.btn_publicar).isEnabled = true
-                    findViewById<Button>(R.id.btn_publicar).text = "Publicar Proyecto"
-                    Toast.makeText(this@CrearPublicacionActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-}
 
 class CrearPublicacionActivity : AppCompatActivity() {
 
@@ -302,7 +127,7 @@ class CrearPublicacionActivity : AppCompatActivity() {
     }
 
     private fun cargarDatosOriginales(id: Int) {
-        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", "") ?: ""
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", "") ?: ""
 
         lifecycleScope.launch {
             try {
@@ -337,7 +162,7 @@ class CrearPublicacionActivity : AppCompatActivity() {
 
     // --- FUNCIÓN POST (CREAR) ---
     private fun enviarPublicacion(titulo: String, desc: String, tags: String, colabs: String) {
-        val sharedPref = getSharedPreferences("sesion", MODE_PRIVATE)
+        val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
         val token = sharedPref.getString("token", null) ?: return
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -392,18 +217,18 @@ class CrearPublicacionActivity : AppCompatActivity() {
 
     // --- FUNCIÓN PUT (ACTUALIZAR) ---
     private fun actualizarPublicacion(id: Int, titulo: String, descripcion: String, tags: String) {
-        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", "") ?: ""
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", "") ?: ""
 
         // Textos
-        val titlePart = RequestBody.Companion.create("text/plain".toMediaTypeOrNull(), titulo)
-        val descPart = RequestBody.Companion.create("text/plain".toMediaTypeOrNull(), descripcion)
-        val tagsPart = RequestBody.Companion.create("text/plain".toMediaTypeOrNull(), tags)
+        val titlePart = RequestBody.create("text/plain".toMediaTypeOrNull(), titulo)
+        val descPart = RequestBody.create("text/plain".toMediaTypeOrNull(), descripcion)
+        val tagsPart = RequestBody.create("text/plain".toMediaTypeOrNull(), tags)
 
         // Imagen Portada (Si se cambió)
         var bodyImagen: MultipartBody.Part? = null
         uriPortada?.let { uri ->
             val file = uriToFile(uri, "portada_edit")
-            val reqFile = RequestBody.Companion.create("image/*".toMediaTypeOrNull(), file)
+            val reqFile = RequestBody.create("image/*".toMediaTypeOrNull(), file)
             bodyImagen = MultipartBody.Part.createFormData("portada", file.name, reqFile)
         }
 
@@ -501,11 +326,11 @@ class CrearPublicacionActivity : AppCompatActivity() {
 
     private fun eliminarArchivoRemoto(ruta: String, viewToRemove: View) {
         val token =
-            getSharedPreferences("sesion", MODE_PRIVATE).getString("token", "") ?: ""
+            getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", "") ?: ""
 
         lifecycleScope.launch {
             try {
-                val request = EliminarArchivoRequest(
+                val request = com.example.teshub_v1.data.model.EliminarArchivoRequest(
                     id_publi = idPublicacionEditar,
                     ruta = ruta
                 )

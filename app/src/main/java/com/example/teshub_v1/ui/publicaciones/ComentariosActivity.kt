@@ -60,7 +60,7 @@ class ComentariosActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        val miMatricula = getSharedPreferences("sesion", MODE_PRIVATE).getString("matricula", "") ?: ""
+        val miMatricula = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("matricula", "") ?: ""
 
         adapter = ComentariosAdapter(mutableListOf(), miMatricula) { comentario ->
             confirmarBorrado(comentario)
@@ -70,7 +70,7 @@ class ComentariosActivity : AppCompatActivity() {
     }
 
     private fun cargarComentarios() {
-        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", "") ?: return
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", "") ?: return
 
         lifecycleScope.launch {
             try {
@@ -90,7 +90,7 @@ class ComentariosActivity : AppCompatActivity() {
     }
 
     private fun enviarComentario(texto: String) {
-        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", "") ?: return
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", "") ?: return
 
         btnEnviar.isEnabled = false
 
@@ -120,7 +120,7 @@ class ComentariosActivity : AppCompatActivity() {
     }
 
     private fun eliminarComentarioBackend(comentario: Comentario) {
-        val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", "") ?: return
+        val token = getSharedPreferences("sesion", Context.MODE_PRIVATE).getString("token", "") ?: return
 
         lifecycleScope.launch {
             try {

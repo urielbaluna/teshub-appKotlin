@@ -1,13 +1,12 @@
 package com.example.teshub_v1.ui.publicaciones
 
-import android.content.res.ColorStateList
-import android.graphics.Color
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.setPadding
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.teshub_v1.BuildConfig
@@ -16,49 +15,6 @@ import com.example.teshub_v1.data.model.Publicacion
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-
-class PublicacionesAdapter(
-    private var publicaciones: List<Publicacion>,
-    private val onClick: (Publicacion) -> Unit,
-    private val onComentariosClick: (Publicacion) -> Unit
-) : RecyclerView.Adapter<PublicacionesAdapter.ViewHolder>() {
-
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvTitulo: TextView = view.findViewById(R.id.tv_titulo_proyecto)
-        val tvDescripcion: TextView = view.findViewById(R.id.tv_descripcion_proyecto)
-        val tvFecha: TextView = view.findViewById(R.id.tv_fecha_proyecto)
-        val tvCalificacion: TextView = view.findViewById(R.id.tv_calificacion)
-        val layoutComentarios: LinearLayout = view.findViewById(R.id.comentariosLayout)
-        val tvContadorComentarios: TextView = view.findViewById(R.id.contadorComentarios)
-    }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_publicacion, parent, false)
-        return ViewHolder(view)
-    }
-
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = publicaciones[position]
-        holder.tvTitulo.text = item.nombre
-        holder.tvDescripcion.text = item.descripcion
-        holder.tvFecha.text = if (item.fecha.length >= 10) item.fecha.substring(0, 10) else item.fecha
-        holder.tvCalificacion.text = "\u2605 ${item.calificacion ?: "0.0"}"
-        val cantidad = item.comentarios?.size ?: 0
-        holder.tvContadorComentarios.text = cantidad.toString()
-        holder.itemView.setOnClickListener { onClick(item) }
-        holder.layoutComentarios.setOnClickListener {
-            onComentariosClick(item)
-        }
-    }
-
-    override fun getItemCount(): Int = publicaciones.size
-
-    fun updateList(newList: List<Publicacion>) {
-        publicaciones = newList
-        notifyDataSetChanged()
-    }
-}
 
 class PublicacionesAdapter(
     private var publicaciones: List<Publicacion>,
@@ -129,7 +85,7 @@ class PublicacionesAdapter(
             val padding = (20 * holder.itemView.context.resources.displayMetrics.density).toInt()
             // 3. Usamos la función de Java con los 4 parámetros
             holder.ivPortada.setPadding(padding, padding, padding, padding)
-            holder.ivPortada.setColorFilter(Color.parseColor("#757575"))
+            holder.ivPortada.setColorFilter(android.graphics.Color.parseColor("#757575"))
         }
 
         // Tags
@@ -140,7 +96,7 @@ class PublicacionesAdapter(
             chip.isClickable = false
             chip.setChipBackgroundColorResource(android.R.color.transparent)
             chip.chipStrokeWidth = 1f
-            chip.chipStrokeColor = ColorStateList.valueOf(Color.parseColor("#E0E0E0"))
+            chip.chipStrokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#E0E0E0"))
             chip.minHeight = 0
             chip.textSize = 10f
             holder.chipGroup.addView(chip)
