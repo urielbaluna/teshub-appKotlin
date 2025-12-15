@@ -8,6 +8,7 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -18,6 +19,9 @@ import com.example.teshub_v1.data.network.RetrofitClient
 import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import android.view.View
+import androidx.core.view.*
+
 
 class ComentariosActivity : AppCompatActivity() {
 
@@ -29,7 +33,22 @@ class ComentariosActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_comentarios)
+        val root = findViewById<View>(R.id.root)
+
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val nav = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+
+            v.setPadding(
+                0,
+                0,
+                0,
+                maxOf(ime.bottom, nav.bottom)
+            )
+            insets
+        }
 
         idPublicacion = intent.getIntExtra("id_publi", 0)
         if (idPublicacion == 0) {
