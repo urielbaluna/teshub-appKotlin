@@ -242,37 +242,41 @@ class PublicacionDetalleActivity : AppCompatActivity() {
 
     // --- Función que faltaba ---
     private fun agregarBotonArchivo(rutaRelativa: String) {
-        // Inflar el diseño simple para el archivo
         val view = layoutInflater.inflate(R.layout.item_archivo, layoutArchivos, false)
-        val tvNombre = view.findViewById<TextView>(R.id.txt_nombre_archivo)
-        val btnEliminar = view.findViewById<ImageView>(R.id.btn_eliminar_archivo)
-        val icono = view.findViewById<ImageView>(R.id.icono_archivo)
 
-        // Limpiar ruta para mostrar solo el nombre del archivo
+        val tvNombre = view.findViewById<TextView>(R.id.txt_nombre_archivo)
+        val icono = view.findViewById<ImageView>(R.id.icono_archivo)
+        val btnEliminar = view.findViewById<ImageView>(R.id.btn_eliminar_archivo)
+
         val nombreArchivo = rutaRelativa.substringAfterLast("/")
         tvNombre.text = nombreArchivo
 
-        // Reutilizamos item_archivo.xml pero cambiamos el botón eliminar por descargar visualmente
-        // (O simplemente lo ocultamos si prefieres que toda la fila sea clicable)
         btnEliminar.visibility = View.GONE
-        // O si quieres cambiar el icono: btnEliminar.setImageResource(R.drawable.ic_download)
 
-        if (nombreArchivo.lowercase().endsWith(".pdf")) {
-            icono.setImageResource(R.drawable.ic_pdf)
-        } else {
-            icono.setImageResource(R.drawable.ic_image)
-        }
+        val esPdf = nombreArchivo.lowercase().endsWith(".pdf")
+        icono.setImageResource(
+            if (esPdf) R.drawable.ic_pdf else R.drawable.ic_image
+        )
 
-        // Al hacer click, abrir en navegador
         view.setOnClickListener {
             registrarDescargaBackend()
+
             val fullUrl = "${BuildConfig.API_BASE_URL}$rutaRelativa"
-            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl))
-            startActivity(browserIntent)
+
+            if (esPdf) {
+                val intent = Intent(this, PdfViewerActivity::class.java)
+                intent.putExtra("url", fullUrl)
+                startActivity(intent)
+            } else {
+                val intent = Intent(this, ImageViewerActivity::class.java)
+                intent.putExtra("url", fullUrl)
+                startActivity(intent)
+            }
         }
 
         layoutArchivos.addView(view)
     }
+
 
     // Lógica de Asesor
     private fun mostrarDialogoConfirmacion(nuevoEstado: String) {
