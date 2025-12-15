@@ -64,5 +64,16 @@
             android:name=".ui.usuarios.SeguridadActivity"
             android:exported="false"
             android:label="Seguridad"/>
+
+        <activity
+            android:name=".ui.publicaciones.PdfViewerActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.publicaciones.ImageViewerActivity"
+            android:exported="false" />
+
+
+
     </application>
 </manifest>
