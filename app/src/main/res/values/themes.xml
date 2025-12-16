@@ -3,5 +3,7 @@
     <style name="Theme.TeshubV1" parent="Theme.Material3.Light.NoActionBar">
         <!-- Customize your light theme here. -->
         <item name="colorPrimary">@color/verde_teshub</item>
+        <!-- Ensure the app draws behind system bars -->
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
     </style>
 </resources>
