@@ -25,7 +25,9 @@ import com.example.teshub_v1.ui.usuarios.ConnectionsFragment
 import com.example.teshub_v1.ui.usuarios.PerfilFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class HomeContainerActivity : AppCompatActivity() {
 
     private var currentFragment: Fragment? = null

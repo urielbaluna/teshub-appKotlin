@@ -8,7 +8,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -18,21 +21,30 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.teshub_v1.BuildConfig
 import com.example.teshub_v1.R
+import com.example.teshub_v1.data.local.dao.PerfilDao
+import com.example.teshub_v1.data.local.entity.PerfilEntity
+import com.example.teshub_v1.data.local.entity.toEntity
+import com.example.teshub_v1.data.model.PerfilResponse
 import com.example.teshub_v1.data.model.PublicacionInfo
 import com.example.teshub_v1.data.network.RetrofitClient
 import com.example.teshub_v1.ui.auth.MainActivity
+import com.example.teshub_v1.ui.eventos.EventoDetalleActivity
+import com.example.teshub_v1.ui.eventos.EventosAdapter
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.tabs.TabLayout
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import android.widget.EditText
-import android.widget.*
 import org.json.JSONObject
 import java.util.concurrent.CancellationException
-import com.google.android.material.tabs.TabLayout
-import com.example.teshub_v1.ui.eventos.EventosAdapter
-import com.example.teshub_v1.ui.eventos.EventoDetalleActivity
+import javax.inject.Inject
 
+@AndroidEntryPoint // <--- 1. IMPORTANTE: Permite inyectar dependencias con Hilt
 class PerfilFragment : Fragment() {
+
+    // <--- 2. Inyectamos el DAO para usar la base de datos local
+    @Inject
+    lateinit var perfilDao: PerfilDao
 
     private lateinit var ivProfileAvatar: ImageView
     private lateinit var tvUserName: TextView
@@ -89,17 +101,16 @@ class PerfilFragment : Fragment() {
         tabLayout = view.findViewById(R.id.tab_layout_perfil)
         rvEventos = view.findViewById(R.id.rv_eventos_usuario)
 
-        // 2. Configurar RecyclerView de Eventos
+        // Configurar RecyclerView de Eventos
         rvEventos.layoutManager = LinearLayoutManager(context)
         adapterEventos = EventosAdapter(mutableListOf()) { evento ->
-            // Al hacer clic, vamos al detalle (allí podrás editar si eres organizador)
             val intent = Intent(context, EventoDetalleActivity::class.java)
             intent.putExtra("evento_id", evento.id)
             startActivity(intent)
         }
         rvEventos.adapter = adapterEventos
 
-        // Setup Recycler
+        // Configurar RecyclerView de Publicaciones
         recyclerView.layoutManager = LinearLayoutManager(context)
         adapterPerfil = PerfilPublicacionAdapter(
             mutableListOf(),
@@ -136,7 +147,6 @@ class PerfilFragment : Fragment() {
         btnSolicitarAsesor = view.findViewById(R.id.btn_solicitar_asesor)
         cardAsesor = view.findViewById(R.id.card_asesor)
 
-        // Listener para solicitar
         btnSolicitarAsesor.setOnClickListener { mostrarDialogoSolicitud() }
 
         loadUserProfile()
@@ -144,6 +154,7 @@ class PerfilFragment : Fragment() {
         return view
     }
 
+    // <--- 3. Lógica Modificada para usar SQLite y Red
     private fun loadUserProfile() {
         val sharedPref = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)
         val token = sharedPref?.getString("token", null)
@@ -155,72 +166,131 @@ class PerfilFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                // Usamos el endpoint que actualizamos en el backend que trae TODO
+                // A) PRIMERO: Intentar cargar datos locales (Modo Offline)
+                val perfilLocalEntity = perfilDao.obtenerPerfil()
+                if (perfilLocalEntity != null) {
+                    // Convertimos Entity -> Response para reusar la UI
+                    val perfilLocal = mapEntityToResponse(perfilLocalEntity)
+                    actualizarVistaPerfil(perfilLocal, token, esDatosLocales = true)
+                }
+
+                // B) SEGUNDO: Obtener datos frescos de la red
                 val response = RetrofitClient.usuariosService.getPerfil("Bearer $token")
 
                 if (!isAdded || context == null) return@launch
                 if (response.isSuccessful && response.body() != null) {
-                    val perfil = response.body()!!
+                    val perfilRemoto = response.body()!!
 
-                // 1. Datos Básicos
-                tvUserName.text = "${perfil.nombre} ${perfil.apellido}"
-                tvUserEmail.text = perfil.correo
-                tvUserMatricula.text = perfil.matricula
+                    // C) Actualizar UI con datos frescos
+                    actualizarVistaPerfil(perfilRemoto, token, esDatosLocales = false)
 
-                // 2. Datos Extendidos (Carrera, Bio, Ubicación)
-                val carrera = perfil.carrera ?: "Carrera no especificada"
-                val semestre = perfil.semestre ?: "?"
-                tvUserCareer.text = "$carrera • $semestre semestre"
+                    // D) GUARDAR EN BASE DE DATOS LOCAL (Cache)
+                    // Usamos la extensión toEntity() que creamos en el paso anterior
+                    perfilDao.guardarPerfil(perfilRemoto.toEntity())
 
-                tvBio.text = if (!perfil.biografia.isNullOrEmpty()) perfil.biografia else "Sin biografía disponible."
-                tvLocation.text = if (!perfil.ubicacion.isNullOrEmpty()) perfil.ubicacion else "Ubicación no especificada"
-
-                // 3. Estadísticas (Con validación de nulos segura)
-                tvStatPubs.text = perfil.totalPublicaciones.toString()
-                tvStatFollowers.text = (perfil.estadisticas?.seguidores ?: 0).toString()
-                tvStatFollowing.text = (perfil.estadisticas?.seguidos ?: 0).toString()
-
-                // 4. Imagen
-                if (!perfil.imagen.isNullOrEmpty()) {
-                    val baseUrl = BuildConfig.API_BASE_URL.removeSuffix("/") + "/"
-                    val fullUrl = baseUrl + perfil.imagen
-                    Glide.with(this@PerfilFragment)
-                        .load(fullUrl)
-                        .placeholder(R.drawable.ic_profile)
-                        .error(R.drawable.ic_profile)
-                        .into(ivProfileAvatar)
-                }
-
-                // 5. Intereses (Dinámicos)
-                chipGroupInterests.removeAllViews()
-                perfil.intereses.forEach { interes -> // 'intereses' ya no es nullable en el modelo corregido
-                    val chip = Chip(context)
-                    chip.text = interes.nombre
-                    chip.setChipBackgroundColorResource(R.color.white)
-                    chip.setChipStrokeColorResource(android.R.color.darker_gray)
-                    chip.chipStrokeWidth = 1f
-                    chipGroupInterests.addView(chip)
-                }
-
-                // Lógica de Asesor
-                if (perfil.rol.equals("Estudiante", ignoreCase = true) || perfil.rol.contains("Estudiante")) {
-                    cardAsesor.visibility = View.VISIBLE
-                    cargarMiAsesor(token)
                 } else {
-                    cardAsesor.visibility = View.GONE
-                }
-
-                loadUserPublications(token)
-                } else {
-                    Toast.makeText(context, "Error al obtener perfil: ${response.code()}", Toast.LENGTH_SHORT).show()
+                    // Si falla la red y no teniamos datos locales, mostramos error
+                    if (perfilLocalEntity == null) {
+                        Toast.makeText(context, "Error al obtener perfil: ${response.code()}", Toast.LENGTH_SHORT).show()
+                    }
                 }
 
             } catch (e: Exception) {
-                if (isAdded) Toast.makeText(context, "Error al cargar perfil", Toast.LENGTH_SHORT).show()
+                if (isAdded) {
+                    // Si hay error de red pero tenemos datos locales, no asustamos al usuario
+                    // Solo mostramos error si no hay nada que mostrar
+                    val tieneDatos = perfilDao.obtenerPerfil() != null
+                    if (!tieneDatos) {
+                        Toast.makeText(context, "Error al cargar perfil", Toast.LENGTH_SHORT).show()
+                    }
+                }
                 Log.e("PERFIL", "Error", e)
             }
         }
     }
+
+    // <--- 4. Función extraída para "pintar" la pantalla (Reutilizable)
+    private fun actualizarVistaPerfil(perfil: PerfilResponse, token: String, esDatosLocales: Boolean) {
+        // Datos Básicos
+        tvUserName.text = "${perfil.nombre} ${perfil.apellido}"
+        tvUserEmail.text = perfil.correo
+        tvUserMatricula.text = perfil.matricula
+
+        // Datos Extendidos
+        val carrera = perfil.carrera ?: "Carrera no especificada"
+        val semestre = perfil.semestre ?: "?"
+        tvUserCareer.text = "$carrera • $semestre semestre"
+
+        tvBio.text = if (!perfil.biografia.isNullOrEmpty()) perfil.biografia else "Sin biografía disponible."
+        tvLocation.text = if (!perfil.ubicacion.isNullOrEmpty()) perfil.ubicacion else "Ubicación no especificada"
+
+        // Estadísticas
+        tvStatPubs.text = perfil.totalPublicaciones.toString()
+        tvStatFollowers.text = (perfil.estadisticas?.seguidores ?: 0).toString()
+        tvStatFollowing.text = (perfil.estadisticas?.seguidos ?: 0).toString()
+
+        // Imagen
+        if (!perfil.imagen.isNullOrEmpty()) {
+            // Nota: Si viene de local, asegúrate de que la URL sea completa o relativa según cómo la guardes
+            val baseUrl = BuildConfig.API_BASE_URL.removeSuffix("/") + "/"
+            val fullUrl = if (perfil.imagen.startsWith("http")) perfil.imagen else baseUrl + perfil.imagen
+            Glide.with(this@PerfilFragment)
+                .load(fullUrl)
+                .placeholder(R.drawable.ic_profile)
+                .error(R.drawable.ic_profile)
+                .into(ivProfileAvatar)
+        }
+
+        // Intereses
+        chipGroupInterests.removeAllViews()
+        perfil.intereses.forEach { interes ->
+            val chip = Chip(context)
+            chip.text = interes.nombre
+            chip.setChipBackgroundColorResource(R.color.white)
+            chip.setChipStrokeColorResource(android.R.color.darker_gray)
+            chip.chipStrokeWidth = 1f
+            chipGroupInterests.addView(chip)
+        }
+
+        // Lógica de Asesor
+        if (perfil.rol.equals("Estudiante", ignoreCase = true) || perfil.rol.contains("Estudiante")) {
+            cardAsesor.visibility = View.VISIBLE
+            // Solo cargamos el asesor de la red si no estamos en modo offline estricto, o implementamos cache para asesor también
+            if (!esDatosLocales) {
+                viewLifecycleOwner.lifecycleScope.launch { cargarMiAsesor(token) }
+            }
+        } else {
+            cardAsesor.visibility = View.GONE
+        }
+
+        // Cargar publicaciones (Igual, se podría cachear, por ahora solo red)
+        if (!esDatosLocales) {
+            loadUserPublications(token)
+        }
+    }
+
+    // Helper simple para convertir la Entidad de DB a Modelo de UI
+    private fun mapEntityToResponse(entity: PerfilEntity): PerfilResponse {
+        return PerfilResponse(
+            matricula = entity.matricula,
+            nombre = entity.nombre,
+            apellido = entity.apellido,
+            correo = entity.correo,
+            rol = entity.rol,
+            imagen = entity.imagen,
+            carrera = entity.carrera,
+            semestre = entity.semestre,
+            biografia = entity.biografia,
+            ubicacion = entity.ubicacion,
+            estado = entity.estado,
+            intereses = entity.intereses,
+            estadisticas = entity.estadisticas,
+            totalPublicaciones = entity.totalPublicaciones,
+            publicacionDestacada = entity.publicacionDestacada,
+            siguiendo = entity.siguiendo
+        )
+    }
+
     private suspend fun cargarMiAsesor(token: String) {
         try {
             val response = RetrofitClient.asesoriasService.obtenerMiAsesor("Bearer $token")
@@ -229,27 +299,23 @@ class PerfilFragment : Fragment() {
                 val data = response.body()!!
 
                 if (data.asesor != null) {
-                    // TIENE ASESOR (Pendiente o Activo)
                     layoutSinAsesor.visibility = View.GONE
                     layoutConAsesor.visibility = View.VISIBLE
 
                     tvAsesorNombre.text = "${data.asesor.nombre} ${data.asesor.apellido}"
                     tvAsesorEstado.text = "Estado: ${data.estado}"
 
-                    // Color del estado
                     if (data.estado == "Activo") {
                         tvAsesorEstado.setTextColor(resources.getColor(R.color.green_500, null))
                     } else {
                         tvAsesorEstado.setTextColor(resources.getColor(R.color.accentYellow, null))
                     }
 
-                    // Foto Asesor
                     if (!data.asesor.imagen.isNullOrEmpty()) {
                         val fullUrl = "${BuildConfig.API_BASE_URL}${data.asesor.imagen}"
                         Glide.with(this).load(fullUrl).into(ivAsesorAvatar)
                     }
                 } else {
-                    // NO TIENE ASESOR
                     layoutSinAsesor.visibility = View.VISIBLE
                     layoutConAsesor.visibility = View.GONE
                 }
@@ -258,6 +324,7 @@ class PerfilFragment : Fragment() {
             Log.e("ASESOR", "Error cargando asesor", e)
         }
     }
+
     private fun mostrarDialogoSolicitud() {
         val input = EditText(context)
         input.hint = "Matrícula del Profesor (ej: 99001)"
@@ -268,7 +335,7 @@ class PerfilFragment : Fragment() {
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
-        params.setMargins(50, 20, 50, 0) // Márgenes
+        params.setMargins(50, 20, 50, 0)
         input.layoutParams = params
         container.addView(input)
 
@@ -296,7 +363,7 @@ class PerfilFragment : Fragment() {
 
                 if (response.isSuccessful) {
                     Toast.makeText(context, "Solicitud enviada correctamente", Toast.LENGTH_LONG).show()
-                    cargarMiAsesor(token) // Recargar para ver el estado "Pendiente"
+                    cargarMiAsesor(token)
                 } else {
                     val errMsg = JSONObject(response.errorBody()?.string()).optString("mensaje", "Error al solicitar")
                     Toast.makeText(context, errMsg, Toast.LENGTH_LONG).show()
@@ -306,6 +373,7 @@ class PerfilFragment : Fragment() {
             }
         }
     }
+
     private fun loadUserPublications(token: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -316,22 +384,22 @@ class PerfilFragment : Fragment() {
                     adapterPerfil.updateList(data.publicaciones ?: emptyList())
                 }
             } catch (e: Exception) {
-                // CORRECCIÓN: Si es una cancelación, no lo marcamos como error
                 if (e is CancellationException) {
-                    // Es normal, el usuario salió de la pantalla. No hacemos nada.
                 } else {
-                    // Si es otro error (red, servidor, etc), sí lo mostramos
                     Log.e("PERFIL", "Error cargando publicaciones", e)
                 }
             }
         }
     }
+
     private fun eliminarCuenta() {
         val token = activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)?.getString("token", null) ?: return
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 RetrofitClient.usuariosService.eliminarCuenta("Bearer $token", emptyMap())
+                // Al eliminar, también limpiamos la BD local para no dejar rastros
+                perfilDao.borrarPerfil()
 
                 Toast.makeText(context, "Cuenta eliminada", Toast.LENGTH_LONG).show()
                 logout()
@@ -379,24 +447,27 @@ class PerfilFragment : Fragment() {
     }
 
     private fun logout() {
-        activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)?.edit()?.remove("token")?.apply()
-        val intent = Intent(activity, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
-        activity?.finish()
+        // Al cerrar sesión, borramos datos locales para seguridad
+        viewLifecycleOwner.lifecycleScope.launch {
+            perfilDao.borrarPerfil()
+
+            activity?.getSharedPreferences("sesion", Context.MODE_PRIVATE)?.edit()?.remove("token")?.apply()
+            val intent = Intent(activity, MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            activity?.finish()
+        }
     }
 
     private fun mostrarPublicaciones() {
-        recyclerView.visibility = View.VISIBLE // rv_publicaciones
+        recyclerView.visibility = View.VISIBLE
         rvEventos.visibility = View.GONE
-        // Asegúrate de que las publicaciones ya estén cargadas o recárgalas
     }
 
     private fun mostrarEventos() {
         recyclerView.visibility = View.GONE
         rvEventos.visibility = View.VISIBLE
 
-        // Cargar eventos si la lista está vacía
         if (adapterEventos.itemCount == 0) {
             cargarMisEventos()
         }
@@ -408,31 +479,17 @@ class PerfilFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                // 1. Llamamos al endpoint exclusivo de "Mis Eventos"
-                // Asegúrate de que 'obtenerMisEventos' devuelva Response<UsuarioEventosResponse>
-                // O usa 'obtenerUsuarioConEventos' si ese es el que implementaste en el backend
                 val response = RetrofitClient.usuariosService.obtenerMisEventos("Bearer $token")
 
                 if (response.isSuccessful && response.body() != null) {
                     val listaEventos = response.body()!!.eventos
-
-                    // 2. ACTUALIZAMOS EL ADAPTADOR EXISTENTE
-                    // (No creamos uno nuevo, usamos el que ya está conectado al RecyclerView)
                     adapterEventos.updateList(listaEventos)
-
-                    // 3. Manejo de estado vacío (Opcional)
-                    if (listaEventos.isEmpty()) {
-                        // Si tienes un TextView para mensaje vacío, úsalo aquí
-                        // tvEmptyState.text = "No tienes eventos aún"
-                        // tvEmptyState.visibility = View.VISIBLE
-                    }
                 } else {
                     Log.e("PERFIL", "Error respuesta eventos: ${response.code()}")
                 }
             } catch (e: Exception) {
                 if (e !is CancellationException) {
                     Log.e("PERFIL", "Error cargando eventos", e)
-                    Toast.makeText(context, "Error cargando eventos", Toast.LENGTH_SHORT).show()
                 }
             }
         }
