@@ -15,6 +15,8 @@ import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.teshub_v1.R
+import com.example.teshub_v1.util.setupEdgeToEdge
+import com.example.teshub_v1.util.applySystemBarInsets
 import com.example.teshub_v1.ui.eventos.EventosFragment
 import com.example.teshub_v1.ui.publicaciones.CrearPublicacionActivity
 import com.example.teshub_v1.ui.publicaciones.PublicacionesFragment
@@ -33,11 +35,19 @@ class HomeContainerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Habilitar edge-to-edge pero respetando los insets del sistema
+        setupEdgeToEdge()
+        
         setContentView(R.layout.activity_home_container)
 
         val bottomNavigationView: BottomNavigationView = findViewById(R.id.bottom_navigation)
         val searchBar: EditText = findViewById(R.id.search_bar)
         val fab: FloatingActionButton = findViewById(R.id.fab_add_post)
+        val headerLayout: View = findViewById(R.id.header_layout)
+
+        // Aplicar los insets del sistema al header para que no se sobreponga con la barra de estado
+        headerLayout.applySystemBarInsets(applyBottom = false)
 
         val sharedPref = getSharedPreferences("sesion", Context.MODE_PRIVATE)
         val rol = sharedPref.getString("rol", "") ?: ""

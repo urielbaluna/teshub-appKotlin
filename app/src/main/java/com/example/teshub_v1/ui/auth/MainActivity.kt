@@ -10,6 +10,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import com.example.teshub_v1.R
+import com.example.teshub_v1.util.setupEdgeToEdge
+import com.example.teshub_v1.util.applySystemBarInsets
 import com.example.teshub_v1.data.network.RetrofitClient
 import com.example.teshub_v1.ui.home.HomeContainerActivity
 import kotlinx.coroutines.CoroutineScope
@@ -24,9 +26,15 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Habilitar edge-to-edge pero respetando los insets del sistema
+        setupEdgeToEdge()
+
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
 
         setContentView(R.layout.activity_main)
+
+        // Aplicar los insets del sistema al layout principal
+        findViewById<android.view.View>(R.id.main).applySystemBarInsets()
 
         val token = getSharedPreferences("sesion", MODE_PRIVATE).getString("token", null)
         if (token != null) {
